@@ -45,6 +45,7 @@ data class ClassSlotEntity(
     val subject: String,
     val section: String,
     val room: String,
+    val year: Int = 1, // academic year (1..4) this class is taught to
 )
 
 /**
@@ -89,6 +90,7 @@ data class AttendanceRecordEntity(
     val subject: String,
     val section: String,
     val date: String, // ISO yyyy-MM-dd
+    val year: Int = 0, // academic year of the roster; 0 = legacy rows
     val markedAt: Long,
     val presentCount: Int,
     val absentCount: Int,
@@ -110,16 +112,23 @@ data class AttendanceEntryEntity(
 )
 
 /**
- * Student roster (sample data seeded locally; intended to sync with the department backend).
+ * Student roster, imported by the faculty (Excel/manual). Scope: this faculty
+ * member's classes only. Organized by academic year + section.
  */
-@Entity(tableName = "student", indices = [Index("section"), Index("rollNumber")])
+@Entity(
+    tableName = "student",
+    indices = [Index("section"), Index("rollNumber"), Index(value = ["year", "section"]), Index(value = ["registrationNumber"], unique = false)],
+)
 data class StudentEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val rollNumber: String,
     val name: String,
     val section: String,
     val year: Int,
-    val degree: String = "B.Tech ECE",
+    val registrationNumber: String = "",
+    val email: String = "",
+    val phone: String = "",
+    val degree: String = "",
 )
 
 /**

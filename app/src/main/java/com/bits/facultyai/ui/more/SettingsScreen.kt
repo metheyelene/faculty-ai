@@ -46,9 +46,10 @@ class SettingsViewModel(application: Application) : ViewModel() {
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { settingsRepo.setThemeMode(mode) }
     fun setGreetingStyle(style: Int) = viewModelScope.launch { settingsRepo.setGreetingStyle(style) }
 
-    /** Clears all user-created content and restores the starter data set. */
+    /** Erases all user content. The app starts empty — no demo data is restored. */
     fun resetData() = viewModelScope.launch {
         dao.clearTimetable()
+        dao.clearTimetableVersions()
         dao.clearTasks()
         dao.clearNotes()
         dao.clearMemories()
@@ -56,12 +57,11 @@ class SettingsViewModel(application: Application) : ViewModel() {
         dao.clearAttendanceEntries()
         dao.clearStudents()
         dao.clearAcademicEvents()
-        com.bits.facultyai.data.Seeder.seedIfFirstRun(dao)
     }
 }
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit, onThemeChange: (ThemeMode) -> Unit, vm: SettingsViewModel = viewModel()) {
+fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel()) {
     val k = LocalKineticColors.current
     val settings by vm.settings.collectAsStateWithLifecycle()
 
@@ -80,17 +80,18 @@ fun SettingsScreen(onBack: () -> Unit, onThemeChange: (ThemeMode) -> Unit, vm: S
         Spacer(Modifier.height(KineticSpacing.xl))
 
         KineticSectionHeader(title = "APPEARANCE")
+        val currentMode = settings?.themeMode ?: ThemeMode.SYSTEM
         Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)) {
-            ThemeChip("SYSTEM", settings?.themeMode == ThemeMode.SYSTEM) { onThemeChange(ThemeMode.SYSTEM); vm.setTheme(ThemeMode.SYSTEM) }
-            ThemeChip("LIGHT", settings?.themeMode == ThemeMode.LIGHT) { onThemeChange(ThemeMode.LIGHT); vm.setTheme(ThemeMode.LIGHT) }
-            ThemeChip("DARK", settings?.themeMode == ThemeMode.DARK) { onThemeChange(ThemeMode.DARK); vm.setTheme(ThemeMode.DARK) }
+            ThemeChip("SYSTEM", currentMode == ThemeMode.SYSTEM) { vm.setTheme(ThemeMode.SYSTEM) }
+            ThemeChip("LIGHT", currentMode == ThemeMode.LIGHT) { vm.setTheme(ThemeMode.LIGHT) }
+            ThemeChip("DARK", currentMode == ThemeMode.DARK) { vm.setTheme(ThemeMode.DARK) }
         }
 
         KineticSectionHeader(title = "GREETING STYLE")
         Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)) {
             ThemeChip("TIME-BASED", (settings?.greetingStyle ?: 0) == 0) { vm.setGreetingStyle(0) }
-            ThemeChip("WELCOME BACK", (settings?.greetingStyle ?: 1) == 1) { vm.setGreetingStyle(1) }
-            ThemeChip("HELLO", (settings?.greetingStyle ?: 2) == 2) { vm.setGreetingStyle(2) }
+            ThemeChip("WELCOME BACK", settings?.greetingStyle == 1) { vm.setGreetingStyle(1) }
+            ThemeChip("HELLO", settings?.greetingStyle == 2) { vm.setGreetingStyle(2) }
         }
 
         KineticSectionHeader(title = "PRIVACY")
@@ -111,7 +112,7 @@ fun SettingsScreen(onBack: () -> Unit, onThemeChange: (ThemeMode) -> Unit, vm: S
         var confirmReset by remember { mutableStateOf(false) }
         if (confirmReset) {
             Text(
-                text = "DELETE ALL TIMETABLE, TASKS, NOTES, MEMORIES AND ATTENDANCE?",
+                text = "DELETE ALL TIMETABLE, TASKS, NOTES, MEMORIES, STUDENTS AND ATTENDANCE? THIS CANNOT BE UNDONE.",
                 style = KineticType.labelBold,
                 color = k.statusError,
             )

@@ -1,0 +1,98 @@
+name: Android CI
+
+# Runs unit tests and the release build on every push (all branches),
+# plus manual runs from the Actions tab.
+on:
+  push:
+  workflow_dispatch:
+  pull_request:
+
+# Cancel superseded runs on the same ref (new push to a branch kills the old run).
+concurrency:
+  group: android-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Set these repository secrets to enable signed release APK uploads on CI
+  # (Settings → Secrets and variables → Actions):
+  #   KEYSTORE_BASE64     - the .jks file, Base64-encoded: base64 -i keystore/acadora-release.jks | pbcopy
+  #   KEYSTORE_PASSWORD   - the keystore password
+  #   KEY_ALIAS           - the key alias (e.g. acadora)
+  #   KEY_PASSWORD        - the key password
+  # Without them CI still runs tests and uploads an UNSIGNED release APK.
+  KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+  KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+  KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+  KEYSTORE_B64_SET: ${{ secrets.KEYSTORE_BASE64 != '' }}
+
+jobs:
+  build:
+    name: Unit tests + release build
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # AGP 8.5.x requires JDK 17; the app targets the Java 17 toolchain.
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # The committed ./gradlew is a local bootstrap (runs Gradle from a
+      # gitignored cache with a machine-specific JDK path), so CI provisions
+      # Gradle directly instead — same 8.14.3 as gradle-wrapper.properties.
+      - name: Set up Gradle 8.14.3
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.3'
+
+      # ---- Signing (only when KEYSTORE_BASE64 is configured) ----
+      # Reconstructs keystore.properties + the .jks exactly as the local
+      # release build expects (paths in keystore.properties are project-relative).
+      - name: Restore keystore from secret
+        id: keystore
+        if: env.KEYSTORE_B64_SET == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p keystore
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > keystore/acadora-release.jks
+          cat > keystore.properties <<EOF
+          storeFile=keystore/acadora-release.jks
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Run unit tests
+        run: gradle testDebugUnitTest --stacktrace
+
+      - name: Post test failures as PR annotations
+        if: failure()
+        run: python3 scripts/test-annotations.py app/build/test-results/testDebugUnitTest/*.xml
+
+      - name: Build release APK
+        run: gradle assembleRelease --stacktrace
+
+      - name: Upload release APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk${{ steps.keystore.outputs.signed == 'true' && '-signed' || '-unsigned' }}
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: app/build/reports/tests/
+          retention-days: 7

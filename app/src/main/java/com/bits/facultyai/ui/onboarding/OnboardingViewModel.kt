@@ -77,20 +77,22 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         dao.upsertProfile(
             FacultyProfileEntity(
                 id = 1L,
-                fullName = name.ifBlank { "Faculty Member" },
+                // No fabricated fallbacks: what the user didn't type stays
+                // blank and the UI shows honest empty states instead.
+                fullName = name,
                 preferredName = preferredName.value.ifBlank {
-                    existing?.preferredName ?: name.split(" ").firstOrNull() ?: ""
+                    existing?.preferredName ?: name.split(" ").firstOrNull().orEmpty()
                 },
-                designation = designation.value.ifBlank { existing?.designation ?: "Faculty" },
-                department = department.value.ifBlank { existing?.department ?: "ECE" },
+                designation = designation.value.ifBlank { existing?.designation ?: "" },
+                department = department.value.ifBlank { existing?.department ?: "" },
                 employeeId = existing?.employeeId ?: "",
                 email = existing?.email ?: "",
                 phone = existing?.phone ?: "",
                 qualification = existing?.qualification ?: "",
                 specialization = existing?.specialization ?: "",
                 cabin = existing?.cabin ?: "",
-                academicYear = existing?.academicYear ?: "2026 — 27",
-                semester = existing?.semester ?: "Semester I",
+                academicYear = existing?.academicYear ?: "",
+                semester = existing?.semester ?: "",
                 onboardingComplete = true,
                 profileLocked = existing?.profileLocked ?: false,
                 updatedAt = System.currentTimeMillis(),

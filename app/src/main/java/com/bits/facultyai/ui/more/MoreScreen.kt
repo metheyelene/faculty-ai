@@ -47,7 +47,7 @@ fun MoreScreen(onNavigate: (String) -> Unit) {
 
         KineticSectionHeader(title = "SYSTEM")
         MoreRow("SETTINGS", "Theme, privacy, data", { onNavigate("settings") })
-        Spacer(Modifier.height(96.dp))
+        Spacer(Modifier.height(KineticSpacing.xl))
     }
 }
 

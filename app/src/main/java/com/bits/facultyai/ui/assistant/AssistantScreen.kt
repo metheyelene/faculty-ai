@@ -24,8 +24,8 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -69,7 +69,6 @@ fun AssistantScreen(vm: AssistantViewModel = viewModel()) {
     var input by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     val clipboard = LocalClipboardManager.current
-    val isDark = com.bits.facultyai.ui.theme.LocalIsDark.current
 
     LaunchedEffect(chat.size) {
         if (chat.isNotEmpty()) listState.animateScrollToItem(chat.size - 1)
@@ -166,7 +165,8 @@ fun AssistantScreen(vm: AssistantViewModel = viewModel()) {
                 modifier = Modifier
                     .weight(1f)
                     .semantics { contentDescription = "Message input for the assistant" }
-                    .background(if (isDark) Color(0xFF18181B) else Color(0xFFEFEFF1))
+                    .defaultMinSize(minHeight = 44.dp)
+                    .background(k.muted)
                     .border(KineticBorder.heavy, composerBorder)
                     .padding(horizontal = KineticSpacing.md, vertical = KineticSpacing.md),
                 decorationBox = { inner ->
@@ -197,6 +197,8 @@ fun AssistantScreen(vm: AssistantViewModel = viewModel()) {
                 enabled = phase != AssistantPhase.THINKING && input.isNotBlank(),
                 height = 52,
             )
+            // The disabled ASK button stays tappable-height; no layout shift
+            // when it flips enabled as the user types.
         }
         Spacer(Modifier.height(KineticSpacing.sm))
         Text(

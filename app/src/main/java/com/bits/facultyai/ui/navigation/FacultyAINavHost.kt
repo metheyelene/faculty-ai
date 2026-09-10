@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.Text
@@ -34,7 +36,6 @@ import com.bits.facultyai.ui.calendar.CalendarScreen
 import com.bits.facultyai.ui.theme.KineticMotion
 import com.bits.facultyai.ui.theme.KineticType
 import com.bits.facultyai.ui.theme.LocalKineticColors
-import com.bits.facultyai.ui.theme.ThemeMode
 import com.bits.facultyai.ui.home.HomeScreen
 import com.bits.facultyai.ui.timetable.TimetableScreen
 import com.bits.facultyai.ui.timetable.TimetableViewModel
@@ -82,7 +83,6 @@ fun FacultyAINavHost(
     settings: AppSettings?,
     deepLinkRoute: String? = null,
     onDeepLinkHandled: () -> Unit = {},
-    onThemeChange: (ThemeMode) -> Unit,
     onOnboardingComplete: () -> Unit,
 ) {
     val k = LocalKineticColors.current
@@ -148,7 +148,16 @@ fun FacultyAINavHost(
         if (deepLinkRoute != null) onDeepLinkHandled()
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(k.background)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(k.background)
+            // Global safe areas, applied ONCE at the root: every screen (with
+            // or without its own top bar) clears the status bar; the whole
+            // column lifts above the keyboard instead of colliding with it.
+            .statusBarsPadding()
+            .imePadding()
+    ) {
         NavHost(
             navController = navController,
             startDestination = if (!settings.onboardingComplete) Routes.ONBOARDING else Routes.HOME,
@@ -207,9 +216,14 @@ fun FacultyAINavHost(
             composable(Routes.MORE) { MoreScreen(onNavigate = { navController.navigate(it) }) }
             composable(Routes.PROFILE) { ProfileScreen(onBack = { navController.popBackStack() }) }
             composable(Routes.SETTINGS) {
-                SettingsScreen(onBack = { navController.popBackStack() }, onThemeChange = onThemeChange)
+                SettingsScreen(onBack = { navController.popBackStack() })
             }
         }
+
+        // The floating bar is the ONLY bottom-inset consumer in the app. It
+        // overlays the NavHost, so screens scroll under it — the bar's own
+        // translucent surface keeps content readable, and every list adds
+        // KineticBottomNavigation.contentClearance after its last item.
         if (showBottomBar) {
             KineticBottomNavigation(navController = navController)
         }

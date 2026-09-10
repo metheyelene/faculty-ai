@@ -52,6 +52,9 @@ interface FacultyDao {
     @Query("SELECT MAX(versionNumber) FROM timetable_version")
     suspend fun maxTimetableVersion(): Int?
 
+    @Query("DELETE FROM timetable_version")
+    suspend fun clearTimetableVersions()
+
     @Insert
     suspend fun insertTimetableVersion(version: TimetableVersionEntity): Long
 
@@ -80,7 +83,6 @@ interface FacultyDao {
     // ---- Attendance ----
     @Query("SELECT * FROM attendance_record ORDER BY markedAt DESC")
     fun observeAttendanceRecords(): Flow<List<AttendanceRecordEntity>>
-
     @Query("SELECT * FROM attendance_record WHERE date = :date")
     suspend fun getAttendanceForDate(date: String): List<AttendanceRecordEntity>
 
@@ -95,18 +97,39 @@ interface FacultyDao {
 
     @Insert
     suspend fun insertAttendanceEntries(entries: List<AttendanceEntryEntity>): List<Long>
-
-    @Query("SELECT * FROM student ORDER BY section, rollNumber")
+    @Query("SELECT * FROM student ORDER BY year, section, rollNumber")
     fun observeStudents(): Flow<List<StudentEntity>>
+
+    @Query("SELECT * FROM student WHERE year = :year AND section = :section ORDER BY rollNumber")
+    fun observeStudentsFor(year: Int, section: String): Flow<List<StudentEntity>>
+
+    @Query("SELECT * FROM student WHERE year = :year AND section = :section ORDER BY rollNumber")
+    suspend fun getStudentsFor(year: Int, section: String): List<StudentEntity>
+
+    /** Distinct sections imported for a given year — drives the section chips (data, not hardcode). */
+    @Query("SELECT DISTINCT section FROM student WHERE year = :year ORDER BY section")
+    fun observeDistinctSectionsFor(year: Int): Flow<List<String>>
 
     @Query("SELECT * FROM student WHERE id = :id LIMIT 1")
     suspend fun getStudent(id: Long): StudentEntity?
 
     @Insert
-    suspend fun insertStudents(students: List<StudentEntity>)
+    suspend fun insertStudents(students: List<StudentEntity>): List<Long>
+
+    @Query("SELECT * FROM student WHERE year = :year AND section = :section AND (LOWER(rollNumber) = LOWER(:roll) OR (registrationNumber != '' AND LOWER(registrationNumber) = LOWER(:reg)))")
+    suspend fun findExistingStudents(year: Int, section: String, roll: String, reg: String): List<StudentEntity>
+
+    @Update
+    suspend fun updateStudent(student: StudentEntity)
+
+    @Query("DELETE FROM student WHERE year = :year AND section = :section")
+    suspend fun deleteStudentsFor(year: Int, section: String)
 
     @Query("SELECT COUNT(*) FROM student")
     suspend fun countStudents(): Int
+
+    @Query("SELECT COUNT(*) FROM student WHERE year = :year AND section = :section")
+    suspend fun countStudentsFor(year: Int, section: String): Int
 
     // ---- Notes ----
     @Query("SELECT * FROM note ORDER BY updatedAt DESC")

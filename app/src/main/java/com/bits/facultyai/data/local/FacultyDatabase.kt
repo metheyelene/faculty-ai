@@ -20,7 +20,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TaskEntity::class,
         MemoryEntity::class,
     ],
-    version = 2,
+    version = 4,
     exportSchema = false,
 )
 abstract class FacultyDatabase : RoomDatabase() {
@@ -50,6 +50,26 @@ abstract class FacultyDatabase : RoomDatabase() {
             }
         }
 
+        /** v3 -> v4: class slots carry their academic year so attendance rosters match exactly. */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `class_slot` ADD COLUMN `year` INTEGER NOT NULL DEFAULT 1")
+            }
+        }
+
+        /** v2 -> v3: student import support — new roster fields + attendance year scoping. */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `student` ADD COLUMN `registrationNumber` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `student` ADD COLUMN `email` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `student` ADD COLUMN `phone` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `student` ADD COLUMN `degree` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `attendance_record` ADD COLUMN `year` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_student_year_section` ON `student` (`year`, `section`)" )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_student_registrationNumber` ON `student` (`registrationNumber`)")
+            }
+        }
+
         fun get(context: Context): FacultyDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -57,7 +77,7 @@ abstract class FacultyDatabase : RoomDatabase() {
                     FacultyDatabase::class.java,
                     "faculty_ai.db",
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { instance = it }
             }

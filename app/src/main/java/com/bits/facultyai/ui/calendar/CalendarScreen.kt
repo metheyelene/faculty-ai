@@ -250,7 +250,7 @@ fun CalendarScreen(vm: CalendarViewModel = viewModel(), onBack: () -> Unit) {
             }
         }
 
-        Spacer(Modifier.height(96.dp))
+        Spacer(Modifier.height(KineticSpacing.xl))
     }
 
     if (showAdd) {

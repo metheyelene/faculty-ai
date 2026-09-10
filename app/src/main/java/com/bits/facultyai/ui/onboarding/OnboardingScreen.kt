@@ -2,6 +2,8 @@ package com.bits.facultyai.ui.onboarding
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,7 +37,11 @@ fun OnboardingScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(k.background)
-            .padding(horizontal = KineticSpacing.lg, vertical = KineticSpacing.xl),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = KineticSpacing.lg)
+            // Root NavHost already applies statusBarsPadding + imePadding
+            // globally; onboarding only adds bottom system-area breathing room.
+            .navigationBarsPadding(),
     ) {
         KineticDisplayText(
             text = when (step) {
@@ -65,14 +71,20 @@ fun OnboardingScreen(
             2 -> AssistantStep(vm = vm)
         }
 
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(KineticSpacing.xl))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(KineticSpacing.md)) {
             if (step > 0) {
                 KineticGhostButton(text = "Back", onClick = { vm.previous() })
             }
             Spacer(Modifier.weight(1f))
             KineticGhostButton(text = "Skip", onClick = { scope.launch { vm.complete(onComplete) } })
-            KineticButton(text = if (step == 2) "Ready" else "Continue", onClick = { scope.launch { vm.next(onComplete) } })
+            KineticButton(
+                text = if (step == 2) "Ready" else "Continue",
+                // Name is the one field that personalizes the whole app —
+                // require it on step 0 (Skip remains available).
+                enabled = step != 0 || vm.fullName.value.isNotBlank(),
+                onClick = { scope.launch { vm.next(onComplete) } },
+            )
         }
     }
 }

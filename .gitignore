@@ -21,3 +21,6 @@ keystore.properties
 
 # AI agent workspace
 .agents/
+
+# Kotlin/Native & compose compiler local caches
+.kotlin/

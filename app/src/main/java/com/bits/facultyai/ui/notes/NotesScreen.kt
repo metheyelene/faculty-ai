@@ -82,7 +82,7 @@ fun NotesScreen(
             text = "NEW NOTE",
             onClick = { vm.createNote("", "LECTURES") { id -> onNavigate(noteEditorRoute(id)) } },
         )
-        Spacer(Modifier.height(96.dp))
+        Spacer(Modifier.height(KineticSpacing.xl))
     }
 }
 

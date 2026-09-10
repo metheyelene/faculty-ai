@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.sp
 import com.bits.facultyai.data.local.StudentEntity
 import com.bits.facultyai.ui.components.KineticDisplayText
+import com.bits.facultyai.ui.components.KineticLoadingState
 import com.bits.facultyai.ui.components.KineticSectionHeader
 import com.bits.facultyai.ui.components.KineticStat
 import com.bits.facultyai.ui.theme.KineticSpacing
@@ -59,9 +60,11 @@ fun StudentDetailScreen(
     val k = LocalKineticColors.current
     val student by vm.student.collectAsStateWithLifecycle()
     val entries by vm.entries.collectAsStateWithLifecycle()
-    val present = entries.count { it.status == "PRESENT" }
+    // LATE counts as attended for the percentage; totals show the full picture.
+    val attended = entries.count { it.status == "PRESENT" || it.status == "LATE" }
     val total = entries.size
-    val pct = if (total > 0) (present * 100 / total) else 0
+    val pct = if (total > 0) (attended * 100 / total) else 0
+    val loaded = student != null
 
     Column(
         modifier = Modifier
@@ -71,6 +74,11 @@ fun StudentDetailScreen(
             .padding(horizontal = KineticSpacing.lg),
     ) {
         Spacer(Modifier.height(KineticSpacing.xl))
+        if (!loaded) {
+            KineticLoadingState(label = "LOADING STUDENT")
+            Spacer(Modifier.height(KineticSpacing.xl))
+            return@Column
+        }
         KineticDisplayText(text = student?.name ?: "STUDENT", style = KineticType.display.copy(fontSize = 44.sp))
         Text(
             text = (student?.rollNumber ?: "") + " · " + (student?.section ?: "") + " · " + (student?.degree ?: ""),
@@ -81,7 +89,7 @@ fun StudentDetailScreen(
 
         KineticSectionHeader(title = "ATTENDANCE")
         Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.xl)) {
-            KineticStat(value = "$pct%", label = "PRESENT")
+            KineticStat(value = "$pct%", label = "ATTENDED")
             KineticStat(value = "$total", label = "SESSIONS")
         }
 
@@ -89,7 +97,7 @@ fun StudentDetailScreen(
         InfoRow("SECTION", student?.section ?: "—")
         InfoRow("YEAR", student?.year?.toString() ?: "—")
         InfoRow("PROGRAM", student?.degree ?: "—")
-        Spacer(Modifier.height(96.dp))
+        Spacer(Modifier.height(KineticSpacing.xl))
     }
 }
 

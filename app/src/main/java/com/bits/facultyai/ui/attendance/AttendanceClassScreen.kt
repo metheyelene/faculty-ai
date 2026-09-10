@@ -30,6 +30,7 @@ import com.bits.facultyai.ui.components.KineticButton
 import com.bits.facultyai.ui.components.KineticDivider
 import com.bits.facultyai.ui.components.KineticGhostButton
 import com.bits.facultyai.ui.components.KineticStat
+import com.bits.facultyai.ui.students.ordinalYear
 import com.bits.facultyai.ui.theme.KineticBorder
 import com.bits.facultyai.ui.theme.KineticSpacing
 import com.bits.facultyai.ui.theme.KineticType
@@ -81,7 +82,15 @@ fun AttendanceClassScreen(
                     .weight(1f)
                     .verticalScroll(rememberScrollState()),
             ) {
-                val roster = students.filter { it.section == slot.section }
+                // Exact roster match: the slot's academic year AND section.
+                val roster = students.filter { it.year == slot.year && it.section == slot.section }
+                if (roster.isEmpty()) {
+                    Text(
+                        text = "NO STUDENTS IMPORTED FOR ${slot.year.ordinalYear()} YEAR · SECTION ${slot.section}. IMPORT THE ROSTER FROM THE STUDENTS TAB.",
+                        style = KineticType.labelBold,
+                        color = k.statusWarning,
+                    )
+                }
                 roster.forEachIndexed { index, student ->
                     Row(
                         modifier = Modifier
@@ -117,7 +126,11 @@ fun AttendanceClassScreen(
                 Spacer(Modifier.width(KineticSpacing.xl))
                 KineticStat(value = absent.toString(), label = "ABSENT")
                 Spacer(Modifier.weight(1f))
-                KineticButton(text = "SAVE", onClick = { vm.saveAttendance(onDone) })
+                KineticButton(
+                    text = "SAVE",
+                    enabled = marks.isNotEmpty(),
+                    onClick = { vm.saveAttendance(onDone) },
+                )
             }
             Spacer(Modifier.height(KineticSpacing.lg))
         }

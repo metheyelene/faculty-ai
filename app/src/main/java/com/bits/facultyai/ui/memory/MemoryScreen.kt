@@ -100,13 +100,17 @@ fun MemoryScreen(vm: MemoryViewModel = viewModel()) {
                                 text = "EDIT",
                                 style = KineticType.labelBold,
                                 color = k.accent,
-                                modifier = Modifier.clickable { editingId = memory.id },
+                                modifier = Modifier
+                                    .clickable { editingId = memory.id }
+                                    .padding(horizontal = 10.dp, vertical = 12.dp),
                             )
                             Text(
                                 text = "DELETE",
                                 style = KineticType.labelBold,
                                 color = k.mutedForeground,
-                                modifier = Modifier.clickable { vm.deleteMemory(memory.id) },
+                                modifier = Modifier
+                                    .clickable { vm.deleteMemory(memory.id) }
+                                    .padding(horizontal = 10.dp, vertical = 12.dp),
                             )
                         }
                     }
@@ -129,7 +133,7 @@ fun MemoryScreen(vm: MemoryViewModel = viewModel()) {
                 onClick = { confirmClear = true },
             )
         }
-        Spacer(Modifier.height(96.dp))
+        Spacer(Modifier.height(KineticSpacing.xl))
     }
 }
 
@@ -160,7 +164,7 @@ private fun ToggleRow(label: String, description: String, checked: Boolean, onTo
         )
         Box(
             modifier = Modifier
-                .size(width = 44.dp, height = 24.dp)
+                .size(width = 44.dp, height = 28.dp)
                 .border(KineticBorder.heavy, if (checked) k.accent else k.border)
                 .background(trackColor)
                 .clickable {
@@ -172,7 +176,7 @@ private fun ToggleRow(label: String, description: String, checked: Boolean, onTo
             Box(
                 Modifier
                     .padding(end = knobAlignment)
-                    .size(14.dp)
+                    .size(16.dp)
                     .background(if (checked) k.accentForeground else k.mutedForeground),
             )
         }

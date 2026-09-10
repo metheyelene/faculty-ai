@@ -107,6 +107,7 @@ fun NoteEditorScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(k.background)
+            .imePadding()
             .padding(horizontal = KineticSpacing.lg),
     ) {
         Spacer(Modifier.height(KineticSpacing.xl))

@@ -108,6 +108,6 @@ fun AttendanceScreen(
                 KineticDivider()
             }
         }
-        Spacer(Modifier.height(96.dp))
+        Spacer(Modifier.height(KineticSpacing.xl))
     }
 }

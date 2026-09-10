@@ -23,24 +23,6 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
     val visibleMonth = MutableStateFlow(YearMonth.now())
     val selectedDate = MutableStateFlow<LocalDate?>(LocalDate.now())
 
-    /** Events seeded once so the calendar is immediately useful. */
-    suspend fun seedDefaultsIfEmpty() {
-        if (dao.countAcademicEvents() > 0) return
-        val today = LocalDate.now()
-        val defaults = listOf(
-            AcademicEventEntity(title = "Internal Assessment I", date = today.plusDays(9).toString(), category = "EXAM"),
-            AcademicEventEntity(title = "Faculty Meeting", date = today.plusDays(4).toString(), category = "MEETING"),
-            AcademicEventEntity(title = "Project Review Round 1", date = today.plusDays(15).toString(), category = "ACADEMIC"),
-            AcademicEventEntity(title = "Last date to submit marks", date = today.plusDays(6).toString(), category = "DEADLINE"),
-            AcademicEventEntity(title = "College Day (Holiday)", date = today.plusDays(21).toString(), category = "HOLIDAY"),
-        )
-        defaults.forEach { dao.insertAcademicEvent(it) }
-    }
-
-    init {
-        viewModelScope.launch { seedDefaultsIfEmpty() }
-    }
-
     fun addEvent(title: String, date: LocalDate, category: String, notes: String = "") {
         if (title.isBlank()) return
         viewModelScope.launch {

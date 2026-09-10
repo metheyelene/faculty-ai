@@ -101,7 +101,7 @@ fun TasksScreen(vm: TasksViewModel = viewModel()) {
                 KineticDivider()
             }
         }
-        Spacer(Modifier.height(96.dp))
+        Spacer(Modifier.height(KineticSpacing.xl))
     }
 }
 
@@ -125,25 +125,31 @@ private fun TaskRow(task: TaskEntity, onToggle: () -> Unit, onDelete: () -> Unit
             .padding(vertical = KineticSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Checkbox square
+        // Checkbox: 24dp visual inside a 40dp touch target.
         Box(
             modifier = Modifier
-                .size(24.dp)
-                .background(k.accent.copy(alpha = checkFill))
-                .border(KineticBorder.heavy, if (task.completed) k.accent else k.foreground)
+                .size(40.dp)
                 .clickable {
                     com.bits.facultyai.ui.components.KineticHaptics.success(context)
                     onToggle()
                 },
             contentAlignment = Alignment.Center,
         ) {
-            if (checkFill > 0.6f) {
-                Text(
-                    text = "\u2713",
-                    style = KineticType.labelBold,
-                    color = k.accentForeground,
-                    modifier = Modifier.graphicsLayer { alpha = ((checkFill - 0.6f) / 0.4f).coerceIn(0f, 1f) },
-                )
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .background(k.accent.copy(alpha = checkFill))
+                    .border(KineticBorder.heavy, if (task.completed) k.accent else k.foreground),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (checkFill > 0.6f) {
+                    Text(
+                        text = "\u2713",
+                        style = KineticType.labelBold,
+                        color = k.accentForeground,
+                        modifier = Modifier.graphicsLayer { alpha = ((checkFill - 0.6f) / 0.4f).coerceIn(0f, 1f) },
+                    )
+                }
             }
         }
         Spacer(Modifier.width(KineticSpacing.md))
@@ -165,7 +171,9 @@ private fun TaskRow(task: TaskEntity, onToggle: () -> Unit, onDelete: () -> Unit
             text = "✕",
             style = KineticType.labelBold,
             color = k.mutedForeground,
-            modifier = Modifier.clickable(onClick = onDelete).padding(KineticSpacing.xs),
+            modifier = Modifier
+                .clickable(onClick = onDelete)
+                .padding(horizontal = 10.dp, vertical = 14.dp),
         )
     }
 }

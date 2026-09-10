@@ -49,12 +49,10 @@ class MainActivity : ComponentActivity() {
                     settings = settings,
                     deepLinkRoute = deepLink,
                     onDeepLinkHandled = { pendingDeepLink.value = null },
-                    onThemeChange = vm::setTheme,
                     onOnboardingComplete = vm::setOnboardingComplete,
                 )
             }
-        }
-    }
+        }    }
 
     override fun onNewIntent(intent: android.content.Intent?) {
         super.onNewIntent(intent)

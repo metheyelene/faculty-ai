@@ -39,7 +39,7 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
         selectedSlot.value = slot
         // Pre-mark everyone present by default for speed; faculty can flip individuals to ABSENT/LATE.
         marks.value = students.value
-            .filter { it.section == slot.section }
+            .filter { it.year == slot.year && it.section == slot.section }
             .associate { it.id to "PRESENT" }
     }
 
@@ -50,7 +50,7 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
     fun markAll(status: String) {
         val slot = selectedSlot.value ?: return
         marks.value = students.value
-            .filter { it.section == slot.section }
+            .filter { it.year == slot.year && it.section == slot.section }
             .associate { it.id to status }
     }
 
@@ -63,6 +63,7 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
                     subject = slot.subject,
                     section = slot.section,
                     date = TimeUtils.isoDate(TimeUtils.today()),
+                    year = slot.year,
                     markedAt = System.currentTimeMillis(),
                     presentCount = marks.value.values.count { it == "PRESENT" },
                     absentCount = marks.value.values.count { it == "ABSENT" },
