@@ -43,6 +43,7 @@ jobs:
           # branches (GitHub recursion guard). Falls back to github.token —
           # PRs still open, but CI must be run manually on them.
           RENOVATE_TOKEN: ${{ secrets.RENOVATE_PAT || github.token }}
+          LOG_LEVEL: debug
           # Renovate reads its global config from this env var — the CLI has
           # no --config-file flag (self-hosted config docs).
           RENOVATE_CONFIG_FILE: /tmp/renovate-config.json
