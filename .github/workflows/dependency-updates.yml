@@ -1,0 +1,65 @@
+name: Dependency Updates
+
+# Weekly grouped dependency-update PRs via Renovate.
+#
+# One PR per group (minor+patch together, majors separately) so each bump
+# stays reviewable and CI-verifiable in isolation. The Renovate config is
+# inline (small, self-documenting); the runner-bundled latest Renovate is
+# used, authenticated with the workflow's own GITHUB_TOKEN — no extra secrets.
+on:
+  schedule:
+    - cron: '0 5 * * 1' # Mondays 05:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  renovate:
+    name: Renovate dependency scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        # actions/checkout@v4.4.0
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Renovate
+        env:
+          # A PAT (secret RENOVATE_PAT) is recommended: PRs created with
+          # github.token do NOT trigger the repo's CI workflows on their
+          # branches (GitHub recursion guard). Falls back to github.token —
+          # PRs still open, but CI must be run manually on them.
+          RENOVATE_TOKEN: ${{ secrets.RENOVATE_PAT || github.token }}
+          RENOVATE_CONFIG: |
+            {
+              "onboarding": false,
+              "configWarningReuseIssue": false,
+              "extends": ["config:recommended", ":disableRateLimiting", ":semanticCommitsDisabled"],
+              "labels": ["dependencies"],
+              "prHourlyLimit": 0,
+              "prConcurrentLimit": 5,
+              "packageRules": [
+                {
+                  "description": "Group minor+patch updates into one PR",
+                  "matchUpdateTypes": ["minor", "patch"],
+                  "groupName": "minor-and-patch",
+                  "groupSlug": "minor-and-patch",
+                  "automerge": false
+                },
+                {
+                  "description": "AGP majors need manual care: draft PRs only",
+                  "matchManagers": ["gradle"],
+                  "matchDepNames": ["com.android.application"],
+                  "matchUpdateTypes": ["major"],
+                  "draftPR": true
+                }
+              ]
+            }
+        run: |
+          npx --yes renovate@latest \
+            --platform=local \
+            --token="$RENOVATE_TOKEN" \
+            --require-config=required \
+            --config-file=<(printf '%s' "$RENOVATE_CONFIG")
