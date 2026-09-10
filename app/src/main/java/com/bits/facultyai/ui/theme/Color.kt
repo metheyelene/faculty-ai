@@ -37,6 +37,13 @@ data class KineticColors(
     val statusSuccess: Color,
     val statusWarning: Color,
     val statusError: Color,
+    // ---- Liquid Glass surface ladder (thin -> thick) ----
+    val glassUltraThin: Color = glassSurface.copy(alpha = 0.55f),
+    val glassThin: Color = glassSurface.copy(alpha = 0.74f),
+    val glassRegular: Color = glassSurface.copy(alpha = 0.87f),
+    val glassThick: Color = glassSurface.copy(alpha = 0.96f),
+    /** Soft top-edge highlight that gives glass its lit edge. */
+    val glassHighlight: Color = Color.White.copy(alpha = 0.16f),
 )
 
 fun lightKineticColors() = KineticColors(
@@ -52,6 +59,11 @@ fun lightKineticColors() = KineticColors(
     statusSuccess = StatusSuccess,
     statusWarning = StatusWarning,
     statusError = StatusError,
+    glassUltraThin = PaperWhite.copy(alpha = 0.60f),
+    glassThin = PaperWhite.copy(alpha = 0.76f),
+    glassRegular = PaperWhite.copy(alpha = 0.88f),
+    glassThick = PaperWhite.copy(alpha = 0.965f),
+    glassHighlight = Color.White.copy(alpha = 0.75f),
 )
 
 fun darkKineticColors() = KineticColors(
@@ -67,6 +79,11 @@ fun darkKineticColors() = KineticColors(
     statusSuccess = StatusSuccess,
     statusWarning = StatusWarning,
     statusError = StatusError,
+    glassUltraThin = Color(0xFF18181B).copy(alpha = 0.55f),
+    glassThin = Color(0xFF1C1C20).copy(alpha = 0.74f),
+    glassRegular = Color(0xFF1B1B1F).copy(alpha = 0.87f),
+    glassThick = Color(0xFF1A1A1E).copy(alpha = 0.96f),
+    glassHighlight = Color.White.copy(alpha = 0.10f),
 )
 
 fun kineticMaterialScheme(c: KineticColors): ColorScheme =

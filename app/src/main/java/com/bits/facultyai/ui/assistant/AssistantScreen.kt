@@ -53,6 +53,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bits.facultyai.domain.ContextEngine
 import com.bits.facultyai.domain.FacultyAssistant
+import com.bits.facultyai.ui.components.GlassCard
+import com.bits.facultyai.ui.components.GlassChip
+import com.bits.facultyai.ui.components.GlassStrength
+import com.bits.facultyai.ui.components.GlassSurface
+import com.bits.facultyai.ui.components.GlassTextField
+import com.bits.facultyai.ui.components.GlassDialogSurface
 import com.bits.facultyai.ui.components.KineticBadge
 import com.bits.facultyai.ui.components.KineticButton
 import com.bits.facultyai.ui.components.KineticGhostButton
@@ -105,24 +111,17 @@ fun AssistantScreen(vm: AssistantViewModel = viewModel()) {
         }
         Spacer(Modifier.height(KineticSpacing.lg))
 
-        // Suggested prompts
+        // Suggested prompts — glass chips
         Row(
             Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm),
         ) {
             suggestions.forEach { suggestion ->
-                Box(
-                    modifier = Modifier
-                        .border(KineticBorder.hair, k.border)
-                        .clickable(enabled = phase != AssistantPhase.THINKING) { input = suggestion }
-                        .padding(horizontal = KineticSpacing.md, vertical = KineticSpacing.sm),
-                ) {
-                    Text(
-                        text = suggestion,
-                        style = KineticType.label.copy(fontSize = 12.sp),
-                        color = k.mutedForeground,
-                    )
-                }
+                GlassChip(
+                    label = suggestion,
+                    selected = false,
+                    onClick = { if (phase != AssistantPhase.THINKING) input = suggestion },
+                )
             }
         }
         Spacer(Modifier.height(KineticSpacing.md))
@@ -148,41 +147,15 @@ fun AssistantScreen(vm: AssistantViewModel = viewModel()) {
 
         Spacer(Modifier.height(KineticSpacing.md))
 
-        // ---- Composer: always-visible, high-contrast input ----
-        val composerBorder = if (phase == AssistantPhase.THINKING) k.border else k.accent
+        // ---- Composer: glass input, always-visible, high-contrast ----
         Row(verticalAlignment = Alignment.Bottom) {
-            BasicTextField(
+            GlassTextField(
                 value = input,
                 onValueChange = { input = it },
-                enabled = phase != AssistantPhase.THINKING,
-                textStyle = KineticType.body.copy(
-                    fontSize = 16.sp, // >=16sp prevents auto-zoom, guarantees contrast
-                    color = k.foreground,
-                ),
-                cursorBrush = SolidColor(k.accent),
-                minLines = 1,
+                hint = "Ask about your day, notes, tasks…",
+                modifier = Modifier.weight(1f),
                 maxLines = 5,
-                modifier = Modifier
-                    .weight(1f)
-                    .semantics { contentDescription = "Message input for the assistant" }
-                    .defaultMinSize(minHeight = 44.dp)
-                    .background(k.muted)
-                    .border(KineticBorder.heavy, composerBorder)
-                    .padding(horizontal = KineticSpacing.md, vertical = KineticSpacing.md),
-                decorationBox = { inner ->
-                    if (input.isEmpty()) {
-                        Text(
-                            "Ask about your day, notes, tasks…",
-                            style = KineticType.body.copy(
-                                fontSize = 16.sp,
-                                color = k.mutedForeground,
-                            ),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    inner()
-                },
+                minHeight = 52.dp,
             )
             Spacer(Modifier.width(KineticSpacing.sm))
             KineticButton(
@@ -214,6 +187,22 @@ fun AssistantScreen(vm: AssistantViewModel = viewModel()) {
 @Composable
 private fun ThinkingRow() {
     val k = LocalKineticColors.current
+    val phaseText by rememberInfiniteTransition(label = "thinkCycle").animateFloat(
+        initialValue = 0f,
+        targetValue = 3f,
+        animationSpec = infiniteRepeatable(
+            tween(2400, easing = LinearEasing),
+            RepeatMode.Restart,
+        ),
+        label = "thinkPhase",
+    )
+    val reduced = com.bits.facultyai.ui.theme.rememberReducedMotion()
+    val label = if (reduced) "THINKING…" else when (phaseText.toInt()) {
+        0 -> "THINKING…"
+        1 -> "READING YOUR CONTEXT…"
+        2 -> "ANALYZING…"
+        else -> "COMPOSING…"
+    }
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -221,7 +210,7 @@ private fun ThinkingRow() {
         AssistantOrb(active = true)
         Spacer(Modifier.width(KineticSpacing.md))
         Text(
-            text = "THINKING…",
+            text = label,
             style = KineticType.labelBold,
             color = k.mutedForeground,
         )
@@ -315,70 +304,84 @@ private fun ChatMessageView(
             .fillMaxWidth()
             .animateContentSize(
                 animationSpec = com.bits.facultyai.ui.theme.KineticMotion.springStandard(),
-            )
-            .then(
-                if (message.isUser) Modifier
-                else Modifier.border(KineticBorder.hair, if (message.isError) k.statusError else k.border)
-            )
-            .padding(KineticSpacing.lg),
+            ),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (!message.isUser) {
-                AssistantOrb(
-                    active = false,
-                    error = message.isError,
-                    modifier = Modifier.size(20.dp).padding(end = 6.dp),
-                )
-                Spacer(Modifier.width(4.dp))
-            }
-            Text(
-                text = if (message.isUser) "YOU" else if (message.isError) "ERROR" else "ACADORA AI",
-                style = KineticType.labelBold,
-                color = when {
-                    message.isUser -> k.mutedForeground
-                    message.isError -> k.statusError
-                    else -> k.accent
-                },
-            )
-            Spacer(Modifier.weight(1f))
-            if (!message.isUser && !message.isError) {
+        if (message.isUser) {
+            // User message: quiet editorial block — right-weighted label, no bubble.
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "COPY",
-                    style = KineticType.label.copy(fontSize = 11.sp),
-                    color = k.accent,
-                    modifier = Modifier
-                        .clickable(onClick = onCopy)
-                        .padding(KineticSpacing.xs),
+                    text = "YOU",
+                    style = KineticType.labelBold,
+                    color = k.mutedForeground,
                 )
+                Spacer(Modifier.weight(1f))
             }
-        }
-        Spacer(Modifier.height(KineticSpacing.xs))
-        message.lines.forEach { line ->
-            Text(
-                text = line,
-                style = if (message.isUser) KineticType.bodyMedium else KineticType.body,
-                color = k.foreground,
-            )
-            Spacer(Modifier.height(2.dp))
-        }
-        if (message.sources.isNotEmpty()) {
-            Spacer(Modifier.height(KineticSpacing.sm))
-            Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)) {
-                message.sources.take(2).forEach { source ->
-                    KineticBadge(text = source.kind + ": " + source.detail)
-                }
+            Spacer(Modifier.height(KineticSpacing.xs))
+            message.lines.forEach { line ->
+                Text(text = line, style = KineticType.bodyMedium, color = k.foreground)
+                Spacer(Modifier.height(2.dp))
             }
-        }
-        when {
-            message.isError -> {
-                Spacer(Modifier.height(KineticSpacing.sm))
-                KineticButton(text = "TRY AGAIN", onClick = onRetry, height = 40)
-            }
-            message.pendingMemory != null -> {
-                Spacer(Modifier.height(KineticSpacing.sm))
-                Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)) {
-                    KineticButton(text = "REMEMBER", onClick = onRemember, height = 40)
-                    KineticGhostButton(text = "NOT NOW", onClick = onNotNow)
+        } else {
+            // AI response: document-style glass sheet with typographic hierarchy.
+            GlassSurface(strength = GlassStrength.THIN, borderColor = if (message.isError) k.statusError else null) {
+                Column(Modifier.padding(KineticSpacing.lg)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        AssistantOrb(
+                            active = false,
+                            error = message.isError,
+                            modifier = Modifier.size(20.dp).padding(end = 6.dp),
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = if (message.isError) "ERROR" else "ACADORA AI",
+                            style = KineticType.labelBold,
+                            color = if (message.isError) k.statusError else k.accent,
+                        )
+                        Spacer(Modifier.weight(1f))
+                        if (!message.isError) {
+                            Text(
+                                text = "COPY",
+                                style = KineticType.label.copy(fontSize = 11.sp),
+                                color = k.accent,
+                                modifier = Modifier
+                                    .clickable(onClick = onCopy)
+                                    .padding(KineticSpacing.xs),
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(KineticSpacing.sm))
+                    message.lines.forEachIndexed { i, line ->
+                        // First line = document heading when the engine emits one.
+                        val isHeading = !message.isError && i == 0 &&
+                            line.length < 42 && !line.endsWith(".")
+                        Text(
+                            text = line,
+                            style = if (isHeading) KineticType.headingSm else KineticType.body,
+                            color = if (isHeading) k.foreground else k.foreground,
+                        )
+                        Spacer(Modifier.height(3.dp))
+                    }
+                    if (message.sources.isNotEmpty()) {
+                        Spacer(Modifier.height(KineticSpacing.sm))
+                        Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)) {
+                            message.sources.take(2).forEach { source ->
+                                KineticBadge(text = source.kind + ": " + source.detail)
+                            }
+                        }
+                    }
+                    when {
+                        message.isError -> {
+                            Spacer(Modifier.height(KineticSpacing.sm))
+                            KineticButton(text = "TRY AGAIN", onClick = onRetry, height = 40)
+                        }
+                        message.pendingMemory != null -> {
+                            Spacer(Modifier.height(KineticSpacing.sm))
+                            Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)) {
+                                KineticButton(text = "REMEMBER", onClick = onRemember, height = 40)
+                                KineticGhostButton(text = "NOT NOW", onClick = onNotNow)
+                            }
+                        }
+                    }
                 }
             }
         }

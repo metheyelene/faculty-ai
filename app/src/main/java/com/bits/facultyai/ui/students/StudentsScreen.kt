@@ -40,6 +40,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bits.facultyai.domain.StudentExcelParser
+import com.bits.facultyai.ui.components.GlassCard
+import com.bits.facultyai.ui.components.GlassStat
+import com.bits.facultyai.ui.components.GlassStrength
+import com.bits.facultyai.ui.components.GlassDialogSurface
 import com.bits.facultyai.ui.components.KineticButton
 import com.bits.facultyai.ui.components.KineticDivider
 import com.bits.facultyai.ui.components.KineticDisplayText
@@ -93,9 +97,18 @@ fun StudentsScreen(
     ) {
         Spacer(Modifier.height(KineticSpacing.xl))
         KineticDisplayText(text = "STUDENTS", style = KineticType.display.copy(fontSize = 44.sp))
-        Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.xl)) {
-            KineticStat(value = students.size.toString().padStart(2, '0'), label = "IN VIEW")
-            KineticStat(value = records.size.toString().padStart(2, '0'), label = "SESSIONS")
+        Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)) {
+            GlassStat(
+                value = students.size.toString().padStart(2, '0'),
+                label = "IN VIEW",
+                modifier = Modifier.weight(1f),
+                emphasized = students.isNotEmpty(),
+            )
+            GlassStat(
+                value = records.size.toString().padStart(2, '0'),
+                label = "SESSIONS",
+                modifier = Modifier.weight(1f),
+            )
         }
         Spacer(Modifier.height(KineticSpacing.md))
 
@@ -231,12 +244,7 @@ private fun AddStudentDialog(
     var year by remember { mutableStateOf(defaultYear) }
 
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .background(k.background)
-                .border(KineticBorder.heavy, k.accent)
-                .padding(KineticSpacing.lg),
-        ) {
+        GlassDialogSurface {
             Text(text = "ADD STUDENT", style = KineticType.heading, color = k.foreground)
             Spacer(Modifier.height(KineticSpacing.md))
             KineticTextField(value = name, onValueChange = { name = it }, hint = "FULL NAME *")

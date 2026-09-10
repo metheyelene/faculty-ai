@@ -21,6 +21,8 @@ import com.bits.facultyai.data.local.NoteEntity
 import com.bits.facultyai.domain.TimeUtils
 import com.bits.facultyai.ui.navigation.noteEditorRoute
 import com.bits.facultyai.ui.theme.KineticBorder
+import com.bits.facultyai.ui.components.GlassChip
+import com.bits.facultyai.ui.components.GlassEmptyState
 import com.bits.facultyai.ui.components.KineticDisplayText
 import com.bits.facultyai.ui.components.KineticDivider
 import com.bits.facultyai.ui.components.KineticEmptyState
@@ -64,7 +66,7 @@ fun NotesScreen(
         Spacer(Modifier.height(KineticSpacing.lg))
 
         if (notes.isEmpty()) {
-            KineticEmptyState(
+            GlassEmptyState(
                 title = "NO NOTES",
                 message = "YOUR KNOWLEDGE SPACE IS EMPTY",
                 actionText = "NEW NOTE",
@@ -88,20 +90,7 @@ fun NotesScreen(
 
 @Composable
 private fun FolderChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val k = LocalKineticColors.current
-    Box(
-        modifier = Modifier
-            .border(if (selected) KineticBorder.heavy else KineticBorder.hair, if (selected) k.accent else k.border)
-            .background(if (selected) k.accent else Color.Transparent)
-            .clickable(onClick = onClick)
-            .padding(horizontal = KineticSpacing.md, vertical = KineticSpacing.xs),
-    ) {
-        Text(
-            text = label,
-            style = KineticType.labelBold,
-            color = if (selected) k.accentForeground else k.mutedForeground,
-        )
-    }
+    GlassChip(label = label, selected = selected, onClick = onClick)
 }
 
 @Composable

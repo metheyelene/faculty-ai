@@ -19,8 +19,14 @@ import com.bits.facultyai.data.local.ClassSlotEntity
 import com.bits.facultyai.domain.ContextEngine
 import com.bits.facultyai.domain.ScheduleEngine
 import com.bits.facultyai.domain.TimeUtils
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import com.bits.facultyai.ui.components.KineticBlock
 import com.bits.facultyai.ui.theme.KineticBorder
+import com.bits.facultyai.ui.components.GlassCard
+import com.bits.facultyai.ui.components.GlassStat
+import com.bits.facultyai.ui.components.GlassSurface
+import com.bits.facultyai.ui.components.GlassStrength
 import com.bits.facultyai.ui.components.KineticCard
 import com.bits.facultyai.ui.components.KineticDisplayText
 import com.bits.facultyai.ui.components.KineticEntrance
@@ -60,6 +66,18 @@ fun HomeScreen(
     ) {
         Spacer(Modifier.height(KineticSpacing.xl))
 
+        // Brand line — tiny editorial mark above the greeting.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(6.dp).background(k.accent))
+            Spacer(Modifier.width(KineticSpacing.sm))
+            Text(
+                text = "FACULTY AI",
+                style = KineticType.labelBold.copy(fontSize = 11.sp),
+                color = k.mutedForeground,
+            )
+        }
+        Spacer(Modifier.height(KineticSpacing.sm))
+
         // Personal greeting from real profile data
         Text(
             text = ContextEngine.greeting(hour = java.time.LocalTime.now().hour, style = settings?.greetingStyle ?: 0),
@@ -83,6 +101,27 @@ fun HomeScreen(
         }
 
         Spacer(Modifier.height(KineticSpacing.xl))
+
+        // TODAY — the command-center stat band: oversized numerals on quiet
+        // glass layers, straight from the faculty's real data.
+        Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)) {
+            GlassStat(
+                value = ctx.classesToday.toString().padStart(2, '0'),
+                label = "CLASSES",
+                modifier = Modifier.weight(1f),
+                emphasized = ctx.classesToday > 0,
+            )
+            GlassStat(
+                value = ctx.tasksOpen.toString().padStart(2, '0'),
+                label = "TASKS",
+                modifier = Modifier.weight(1f),
+            )
+            GlassStat(
+                value = events.size.toString().padStart(2, '0'),
+                label = "EVENTS",
+                modifier = Modifier.weight(1f),
+            )
+        }
 
         KineticEntrance(index = 0) {
             Column {
@@ -160,17 +199,19 @@ fun HomeScreen(
             )
         } else {
             events.take(3).forEach { event ->
-                KineticCard(onClick = { onNavigate("calendar") }) {
-                    Column(Modifier.weight(1f)) {
-                        Text(text = event.title, style = KineticType.bodyMedium, color = k.foreground, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        val date = runCatching { LocalDate.parse(event.date) }.getOrNull()
-                        Text(
-                            text = (date?.let { TimeUtils.relativeDayLabel(it) } ?: "") + " · " + event.category,
-                            style = KineticType.label.copy(fontSize = 12.sp),
-                            color = k.mutedForeground,
-                        )
+                GlassCard(strength = GlassStrength.ULTRA_THIN, onClick = { onNavigate("calendar") }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(text = event.title, style = KineticType.bodyMedium, color = k.foreground, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            val date = runCatching { LocalDate.parse(event.date) }.getOrNull()
+                            Text(
+                                text = (date?.let { TimeUtils.relativeDayLabel(it) } ?: "") + " · " + event.category,
+                                style = KineticType.label.copy(fontSize = 12.sp),
+                                color = k.mutedForeground,
+                            )
+                        }
+                        Text(text = "→", style = KineticType.headingSm, color = k.accent)
                     }
-                    Text(text = "→", style = KineticType.headingSm, color = k.accent)
                 }
                 Spacer(Modifier.height(KineticSpacing.sm))
             }
@@ -229,12 +270,14 @@ fun HomeScreen(
             Spacer(Modifier.height(KineticSpacing.xl))
             KineticSectionHeader(title = "RECENT NOTES")
             notes.take(2).forEach { note ->
-                KineticCard(onClick = { onNavigate("notes") }) {
-                    Column(Modifier.weight(1f)) {
-                        Text(text = note.title, style = KineticType.bodyMedium, color = k.foreground, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(text = note.folder, style = KineticType.label.copy(fontSize = 11.sp), color = k.mutedForeground)
+                GlassCard(strength = GlassStrength.ULTRA_THIN, onClick = { onNavigate("notes") }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(text = note.title, style = KineticType.bodyMedium, color = k.foreground, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(text = note.folder, style = KineticType.label.copy(fontSize = 11.sp), color = k.mutedForeground)
+                        }
+                        Text(text = "→", style = KineticType.headingSm, color = k.accent)
                     }
-                    Text(text = "→", style = KineticType.headingSm, color = k.accent)
                 }
                 Spacer(Modifier.height(KineticSpacing.sm))
             }
@@ -294,39 +337,46 @@ private fun TodaySlotRow(slot: ClassSlotEntity, state: String, onClick: () -> Un
 @Composable
 private fun NextClassCard(next: ClassSlotEntity, minutesUntil: Int?, date: LocalDate) {
     val k = LocalKineticColors.current
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(KineticBorder.heavy, k.accent)
-            .padding(KineticSpacing.lg),
-    ) {
-        Text(
-            text = ScheduleEngine.whenLabel(
-                ScheduleEngine.Upcoming(next, date, isToday = minutesUntil != null && minutesUntil >= 0)
-            ),
-            style = KineticType.labelBold.copy(fontSize = 12.sp),
-            color = k.accent,
-        )
-        Spacer(Modifier.height(KineticSpacing.xs))
-        Text(
-            text = next.subject.uppercase(),
-            style = KineticType.heading,
-            color = k.foreground,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            text = next.section + " · ROOM " + next.room,
-            style = KineticType.label.copy(fontSize = 12.sp),
-            color = k.mutedForeground,
-        )
-        if (minutesUntil != null && minutesUntil in 0..90) {
-            Spacer(Modifier.height(KineticSpacing.xs))
-            Text(
-                text = "STARTS IN $minutesUntil MIN",
-                style = KineticType.labelBold,
-                color = k.accent,
+    val isLive = minutesUntil != null && minutesUntil >= 0 && minutesUntil <= 0
+    GlassSurface(strength = GlassStrength.THIN, selected = isLive) {
+        Row(Modifier.height(IntrinsicSize.Min)) {
+            // Accent spine — urgency marker, editorial structure.
+            Box(
+                Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(k.accent)
             )
+            Column(Modifier.padding(KineticSpacing.lg)) {
+                Text(
+                    text = ScheduleEngine.whenLabel(
+                        ScheduleEngine.Upcoming(next, date, isToday = minutesUntil != null && minutesUntil >= 0)
+                    ),
+                    style = KineticType.labelBold.copy(fontSize = 12.sp),
+                    color = k.accent,
+                )
+                Spacer(Modifier.height(KineticSpacing.xs))
+                Text(
+                    text = next.subject.uppercase(),
+                    style = KineticType.heading,
+                    color = k.foreground,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = TimeUtils.formatTime(next.startTimeMinutes) + "  ·  " + next.section + "  ·  ROOM " + next.room,
+                    style = KineticType.label.copy(fontSize = 12.sp),
+                    color = k.mutedForeground,
+                )
+                if (minutesUntil != null && minutesUntil in 0..90) {
+                    Spacer(Modifier.height(KineticSpacing.xs))
+                    Text(
+                        text = "STARTS IN $minutesUntil MIN",
+                        style = KineticType.labelBold,
+                        color = k.accent,
+                    )
+                }
+            }
         }
     }
 }

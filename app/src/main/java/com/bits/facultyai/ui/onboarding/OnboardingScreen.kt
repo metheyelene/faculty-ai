@@ -17,6 +17,7 @@ import com.bits.facultyai.data.local.FacultyProfileEntity
 import com.bits.facultyai.ui.components.KineticButton
 import com.bits.facultyai.ui.components.KineticDisplayText
 import com.bits.facultyai.ui.components.KineticGhostButton
+import com.bits.facultyai.ui.components.GlassTextField
 import com.bits.facultyai.ui.components.KineticTextField
 import com.bits.facultyai.ui.theme.KineticSpacing
 import com.bits.facultyai.ui.theme.KineticType
@@ -93,13 +94,13 @@ fun OnboardingScreen(
 private fun ProfileStep(vm: OnboardingViewModel) {
     val k = LocalKineticColors.current
     Column {
-        KineticTextField(value = vm.fullName.value, onValueChange = vm::setFullName, hint = "FULL NAME")
+        GlassTextField(value = vm.fullName.value, onValueChange = vm::setFullName, hint = "FULL NAME")
         Spacer(Modifier.height(KineticSpacing.md))
-        KineticTextField(value = vm.preferredName.value, onValueChange = vm::setPreferredName, hint = "PREFERRED NAME (HOW YOUR ASSISTANT GREETS YOU)")
+        GlassTextField(value = vm.preferredName.value, onValueChange = vm::setPreferredName, hint = "PREFERRED NAME (HOW YOUR ASSISTANT GREETS YOU)")
         Spacer(Modifier.height(KineticSpacing.md))
-        KineticTextField(value = vm.designation.value, onValueChange = vm::setDesignation, hint = "DESIGNATION")
+        GlassTextField(value = vm.designation.value, onValueChange = vm::setDesignation, hint = "DESIGNATION")
         Spacer(Modifier.height(KineticSpacing.md))
-        KineticTextField(value = vm.department.value, onValueChange = vm::setDepartment, hint = "DEPARTMENT")
+        GlassTextField(value = vm.department.value, onValueChange = vm::setDepartment, hint = "DEPARTMENT")
         Spacer(Modifier.height(KineticSpacing.md))
         Text(
             text = "Only your name, designation and department personalize the app. Everything stays editable in Profile.",

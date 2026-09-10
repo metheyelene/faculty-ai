@@ -22,6 +22,9 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
@@ -38,6 +41,31 @@ import com.bits.facultyai.ui.theme.KineticSpacing
 import com.bits.facultyai.ui.theme.KineticType
 import com.bits.facultyai.ui.theme.LocalIsDark
 import com.bits.facultyai.ui.theme.LocalKineticColors
+
+/** Rounded dock shape — shared with the glass system's moderate radius. */
+private val DockShape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+
+/**
+ * Liquid-glass dock surface: translucent fill that floats over app content,
+ * hairline border and a soft top-edge highlight. Slightly more opaque than
+ * REGULAR glass because the dock overlays arbitrary scrolling content.
+ */
+private fun Modifier.glassDockSurface(): Modifier = composed {
+    val k = LocalKineticColors.current
+    this
+        .clip(DockShape)
+        .border(1.dp, k.glassBorder, DockShape)
+        .background(k.glassThick, DockShape)
+        .drawBehind {
+            drawRect(
+                Brush.verticalGradient(
+                    colors = listOf(k.glassHighlight, Color.Transparent),
+                    startY = 0f,
+                    endY = size.height * 0.4f,
+                )
+            )
+        }
+}
 
 data class NavItem(val route: String, val label: String)
 
@@ -91,12 +119,7 @@ fun KineticBottomNavigation(navController: NavHostController) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(KineticBottomNavigation.barHeight)
-                .border(KineticBorder.hair, if (isDark) k.glassBorder else k.border, KineticShape.slight)
-                .background(
-                    // Translucent glass surface over app content.
-                    if (isDark) k.glassSurface else k.background.copy(alpha = 0.94f),
-                    KineticShape.slight,
-                )
+                .glassDockSurface()
                 .padding(horizontal = KineticSpacing.xs, vertical = KineticSpacing.sm),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
@@ -114,9 +137,16 @@ fun KineticBottomNavigation(navController: NavHostController) {
                     label = "navLabelScale",
                 )
                 val interaction = remember { MutableInteractionSource() }
+                // Subtle yellow glass highlight on the active item.
+                val itemShape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
                 Column(
                     modifier = Modifier
                         .kineticPressScale(interaction)
+                        .clip(itemShape)
+                        .background(
+                            if (selected) k.accent.copy(alpha = if (isDark) 0.16f else 0.22f) else Color.Transparent,
+                            itemShape,
+                        )
                         .clickable(
                             interactionSource = interaction,
                             indication = null,

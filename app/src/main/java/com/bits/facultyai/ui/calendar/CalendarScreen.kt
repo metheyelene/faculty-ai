@@ -307,12 +307,7 @@ private fun AddEventDialog(vm: CalendarViewModel, defaultDate: LocalDate, onDism
     var category by remember { mutableStateOf("EXAM") }
 
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .background(k.background)
-                .border(KineticBorder.heavy, k.accent)
-                .padding(KineticSpacing.lg),
-        ) {
+        com.bits.facultyai.ui.components.GlassDialogSurface {
             Text("ADD EVENT", style = KineticType.heading, color = k.foreground)
             Spacer(Modifier.height(KineticSpacing.md))
             KineticTextField(value = title, onValueChange = { title = it }, hint = "EVENT TITLE")

@@ -26,6 +26,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bits.facultyai.data.local.ClassSlotEntity
 import com.bits.facultyai.domain.TimeUtils
 import com.bits.facultyai.domain.TimetableExtractor
+import com.bits.facultyai.ui.components.GlassDialogSurface
+import com.bits.facultyai.ui.components.GlassStrength
+import com.bits.facultyai.ui.components.GlassSurface
 import com.bits.facultyai.ui.components.KineticButton
 import com.bits.facultyai.ui.components.KineticEmptyState
 import com.bits.facultyai.ui.components.KineticGhostButton
@@ -182,27 +185,53 @@ private fun ClassCard(
     onDelete: () -> Unit,
 ) {
     val k = LocalKineticColors.current
-    val bg = when {
-        isNow -> k.accent
-        isPast -> k.muted
-        else -> Color.Transparent
-    }
     val fg = when {
         isNow -> k.accentForeground
         isPast -> k.mutedForeground
         else -> k.foreground
     }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .animateContentSize(
-                animationSpec = com.bits.facultyai.ui.theme.KineticMotion.springStandard(),
-            )
-            .border(KineticBorder.heavy, if (isNow) k.accent else k.border)
-            .background(bg)
-            .clickable(onClick = onClick)
-            .padding(KineticSpacing.lg),
-    ) {
+    // Current class: solid accent (yellow + black text). Upcoming: normal
+    // glass. Completed: muted glass. Spec-mandated, no exceptions.
+    val cellModifier = Modifier
+        .fillMaxWidth()
+        .animateContentSize(
+            animationSpec = com.bits.facultyai.ui.theme.KineticMotion.springStandard(),
+        )
+    if (isNow) {
+        Column(
+            modifier = cellModifier
+                .border(KineticBorder.heavy, k.accent)
+                .background(k.accent)
+                .clickable(onClick = onClick)
+                .padding(KineticSpacing.lg),
+        ) {
+            ClassCellContent(slot, fg, isNow, expanded, onTakeAttendance, onEdit, onDelete)
+        }
+    } else {
+        GlassSurface(
+            modifier = cellModifier,
+            strength = if (isPast) GlassStrength.ULTRA_THIN else GlassStrength.THIN,
+            onClick = onClick,
+        ) {
+            Column(Modifier.padding(KineticSpacing.lg)) {
+                ClassCellContent(slot, fg, isNow, expanded, onTakeAttendance, onEdit, onDelete)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ClassCellContent(
+    slot: ClassSlotEntity,
+    fg: Color,
+    isNow: Boolean,
+    expanded: Boolean,
+    onTakeAttendance: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val k = LocalKineticColors.current
+    Column {
         Row(verticalAlignment = Alignment.Top) {
             Text(
                 text = TimeUtils.formatTime(slot.startTimeMinutes),
@@ -256,12 +285,8 @@ private fun ClassEditorDialog(vm: TimetableViewModel, existing: ClassSlotEntity?
     var error by remember { mutableStateOf<String?>(null) }
 
     androidx.compose.ui.window.Dialog(onDismissRequest = { onDismiss?.invoke() ?: vm.closeAddDialog() }) {
-        Column(
-            modifier = Modifier
-                .background(k.background)
-                .border(KineticBorder.heavy, k.accent)
-                .padding(KineticSpacing.lg)
-                .verticalScroll(rememberScrollState()),
+        GlassDialogSurface(
+            modifier = Modifier.verticalScroll(rememberScrollState()),
         ) {
             Text(
                 if (existing == null) "ADD CLASS" else "EDIT CLASS",
@@ -356,12 +381,7 @@ private fun ImportFlowOverlay(vm: TimetableViewModel, import: TimetableViewModel
     val context = androidx.compose.ui.platform.LocalContext.current
 
     androidx.compose.ui.window.Dialog(onDismissRequest = { if (import.step != TimetableViewModel.ImportStep.PROCESSING) vm.cancelImport() }) {
-        Column(
-            modifier = Modifier
-                .background(k.background)
-                .border(KineticBorder.heavy, k.accent)
-                .padding(KineticSpacing.lg),
-        ) {
+        GlassDialogSurface {
             when (import.step) {
                 TimetableViewModel.ImportStep.PROCESSING -> {
                     Text(text = "PROCESSING PHOTO", style = KineticType.heading, color = k.foreground)
@@ -517,12 +537,7 @@ private fun VersionHistorySheet(vm: TimetableViewModel) {
     val versions by vm.versions.collectAsStateWithLifecycle()
 
     androidx.compose.ui.window.Dialog(onDismissRequest = { vm.dismissHistory() }) {
-        Column(
-            modifier = Modifier
-                .background(k.background)
-                .border(KineticBorder.heavy, k.accent)
-                .padding(KineticSpacing.lg),
-        ) {
+        GlassDialogSurface {
             Text(text = "TIMETABLE HISTORY", style = KineticType.heading, color = k.foreground)
             Spacer(Modifier.height(KineticSpacing.xs))
             Text(

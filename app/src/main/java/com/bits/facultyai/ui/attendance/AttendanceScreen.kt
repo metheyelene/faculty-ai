@@ -16,6 +16,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bits.facultyai.domain.TimeUtils
 import com.bits.facultyai.ui.navigation.attendanceRoute
+import com.bits.facultyai.ui.components.GlassCard
+import com.bits.facultyai.ui.components.GlassStat
+import com.bits.facultyai.ui.components.GlassStrength
 import com.bits.facultyai.ui.components.KineticBadge
 import com.bits.facultyai.ui.components.KineticDivider
 import com.bits.facultyai.ui.components.KineticEmptyState
@@ -44,6 +47,27 @@ fun AttendanceScreen(
         Spacer(Modifier.height(KineticSpacing.xl))
         Text(text = "MY", style = KineticType.display, color = k.foreground)
         Text(text = "ATTENDANCE", style = KineticType.display, color = k.accent)
+        Spacer(Modifier.height(KineticSpacing.lg))
+
+        // Overview stat band — actual stored-record counts, on glass.
+        Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)) {
+            GlassStat(
+                value = records.size.toString().padStart(2, '0'),
+                label = "SESSIONS",
+                modifier = Modifier.weight(1f),
+                emphasized = records.isNotEmpty(),
+            )
+            GlassStat(
+                value = records.sumOf { it.presentCount }.toString().padStart(2, '0'),
+                label = "MARKS TAKEN",
+                modifier = Modifier.weight(1f),
+            )
+            GlassStat(
+                value = timetable.size.toString().padStart(2, '0'),
+                label = "WEEKLY CLASSES",
+                modifier = Modifier.weight(1f),
+            )
+        }
         Spacer(Modifier.height(KineticSpacing.xl))
 
         KineticSectionHeader(title = "TODAY'S CLASSES")
@@ -56,13 +80,7 @@ fun AttendanceScreen(
             )
         } else {
             todaySlots.forEach { slot ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(KineticBorder.hair, k.border)
-                        .clickable { onNavigate(attendanceRoute(slot.id)) }
-                        .padding(KineticSpacing.lg),
-                ) {
+                GlassCard(strength = GlassStrength.THIN, onClick = { onNavigate(attendanceRoute(slot.id)) }) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = TimeUtils.formatTime(slot.startTimeMinutes),
