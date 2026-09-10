@@ -12,9 +12,11 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  # Renovate pushes update branches (contents) and opens PRs (pull-requests).
+  # Renovate pushes update branches (contents), opens PRs (pull-requests)
+  # and ensures the configured labels exist (issues).
   contents: write
   pull-requests: write
+  issues: write
 
 jobs:
   renovate:
