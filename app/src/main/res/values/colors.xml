@@ -3,4 +3,9 @@
     <color name="window_background">#09090B</color>
     <color name="accent">#DFE104</color>
     <color name="ic_launcher_background">#09090B</color>
+
+    <!-- Widget palette: light values; values-night provides dark-mode set -->
+    <color name="widget_text_primary">#09090B</color>
+    <color name="widget_text_secondary">#52525B</color>
+    <color name="widget_accent">#DFE104</color>
 </resources>

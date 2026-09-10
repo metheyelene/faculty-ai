@@ -13,3 +13,11 @@ build/
 
 # Freebuff workspace metadata
 .freebuff/
+
+# Release signing — never commit these
+keystore.properties
+*.jks
+*.keystore
+
+# AI agent workspace
+.agents/

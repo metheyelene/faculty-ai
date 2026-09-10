@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Faculty AI</string>
+    <string name="app_name">Acadora</string>
     <string name="reminder_channel_name">Reminders</string>
     <string name="reminder_channel_desc">Personal reminders and task due notifications</string>
+    <string name="widget_next_class_desc">Shows your next upcoming class</string>
+    <string name="widget_today_desc">Shows today\'s class schedule</string>
+    <string name="widget_quick_assistant_desc">One tap to your AI assistant</string>
 </resources>

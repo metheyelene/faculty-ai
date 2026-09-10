@@ -1,5 +1,8 @@
 package com.bits.facultyai.ui.memory
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -88,7 +91,7 @@ fun MemoryScreen(vm: MemoryViewModel = viewModel()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             KineticBadge(text = memory.category)
                             Spacer(Modifier.width(KineticSpacing.sm))
-                            Text(text = memory.source, style = KineticType.label.copy(fontSize = 9.sp), color = k.mutedForeground)
+                            Text(text = memory.source, style = KineticType.label.copy(fontSize = 11.sp), color = k.mutedForeground)
                         }
                         Spacer(Modifier.height(KineticSpacing.xs))
                         Text(text = memory.text, style = KineticType.bodyMedium, color = k.foreground)
@@ -133,6 +136,7 @@ fun MemoryScreen(vm: MemoryViewModel = viewModel()) {
 @Composable
 private fun ToggleRow(label: String, description: String, checked: Boolean, onToggle: (Boolean) -> Unit) {
     val k = LocalKineticColors.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -143,17 +147,31 @@ private fun ToggleRow(label: String, description: String, checked: Boolean, onTo
             Text(text = label, style = KineticType.bodyMedium, color = k.foreground)
             Text(text = description, style = KineticType.label, color = k.mutedForeground)
         }
+        // Track color cross-fades; knob slides on a fast spring (level-1 motion).
+        val trackColor by androidx.compose.animation.animateColorAsState(
+            targetValue = if (checked) k.accent else Color.Transparent,
+            animationSpec = tween(com.bits.facultyai.ui.theme.KineticMotion.FAST_MS),
+            label = "toggleTrack",
+        )
+        val knobAlignment by androidx.compose.animation.core.animateDpAsState(
+            targetValue = if (checked) 4.dp else (-4).dp,
+            animationSpec = com.bits.facultyai.ui.theme.KineticMotion.springFast(),
+            label = "toggleKnob",
+        )
         Box(
             modifier = Modifier
                 .size(width = 44.dp, height = 24.dp)
                 .border(KineticBorder.heavy, if (checked) k.accent else k.border)
-                .background(if (checked) k.accent else Color.Transparent)
-                .clickable { onToggle(!checked) },
+                .background(trackColor)
+                .clickable {
+                    com.bits.facultyai.ui.components.KineticHaptics.toggle(context)
+                    onToggle(!checked)
+                },
             contentAlignment = Alignment.CenterEnd,
         ) {
             Box(
                 Modifier
-                    .padding(end = 4.dp)
+                    .padding(end = knobAlignment)
                     .size(14.dp)
                     .background(if (checked) k.accentForeground else k.mutedForeground),
             )

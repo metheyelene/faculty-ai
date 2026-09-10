@@ -27,17 +27,53 @@
         </activity>
 
         <receiver
-            android:name=".reminders.ReminderReceiver"
+            android:name=".notifications.NotificationReceiver"
             android:enabled="true"
             android:exported="false" />
 
         <receiver
-            android:name=".reminders.BootReceiver"
+            android:name=".notifications.BootReceiver"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".widget.NextClassWidgetProvider"
+            android:exported="false"
+            android:label="Next Class">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_next_class_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.TodayWidgetProvider"
+            android:exported="false"
+            android:label="Today\'s Schedule">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_today_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.QuickAssistantWidgetProvider"
+            android:exported="false"
+            android:label="Quick Assistant">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_quick_assistant_info" />
         </receiver>
     </application>
 </manifest>

@@ -30,14 +30,52 @@ interface FacultyDao {
     @Insert
     suspend fun insertClassSlot(slot: ClassSlotEntity): Long
 
+    @Insert
+    suspend fun insertClassSlots(slots: List<ClassSlotEntity>): List<Long>
+
     @Update
     suspend fun updateClassSlot(slot: ClassSlotEntity)
 
     @Query("DELETE FROM class_slot WHERE id = :id")
     suspend fun deleteClassSlot(id: Long)
 
-    @Query("SELECT COUNT(*) FROM class_slot WHERE dayOfWeek = :day AND startTimeMinutes < :end AND endTimeMinutes > :start")
-    suspend fun countOverlapping(day: Int, start: Int, end: Int): Int
+    @Query("SELECT COUNT(*) FROM class_slot WHERE dayOfWeek = :day AND startTimeMinutes < :end AND endTimeMinutes > :start AND (:excludeId IS NULL OR id != :excludeId)")
+    suspend fun countOverlapping(day: Int, start: Int, end: Int, excludeId: Long? = null): Int
+
+    // ---- Timetable versions ----
+    @Query("SELECT * FROM timetable_version ORDER BY versionNumber DESC")
+    fun observeTimetableVersions(): Flow<List<TimetableVersionEntity>>
+
+    @Query("SELECT * FROM timetable_version ORDER BY versionNumber DESC")
+    suspend fun getTimetableVersions(): List<TimetableVersionEntity>
+
+    @Query("SELECT MAX(versionNumber) FROM timetable_version")
+    suspend fun maxTimetableVersion(): Int?
+
+    @Insert
+    suspend fun insertTimetableVersion(version: TimetableVersionEntity): Long
+
+    // ---- Academic events ----
+    @Query("SELECT * FROM academic_event ORDER BY date")
+    fun observeAcademicEvents(): Flow<List<AcademicEventEntity>>
+
+    @Query("SELECT * FROM academic_event WHERE date >= :todayIso ORDER BY date LIMIT :limit")
+    suspend fun getUpcomingEvents(todayIso: String, limit: Int): List<AcademicEventEntity>
+
+    @Query("SELECT * FROM academic_event WHERE date = :date")
+    suspend fun getEventsForDate(date: String): List<AcademicEventEntity>
+
+    @Insert
+    suspend fun insertAcademicEvent(event: AcademicEventEntity): Long
+
+    @Update
+    suspend fun updateAcademicEvent(event: AcademicEventEntity)
+
+    @Query("DELETE FROM academic_event WHERE id = :id")
+    suspend fun deleteAcademicEvent(id: Long)
+
+    @Query("SELECT COUNT(*) FROM academic_event")
+    suspend fun countAcademicEvents(): Int
 
     // ---- Attendance ----
     @Query("SELECT * FROM attendance_record ORDER BY markedAt DESC")
@@ -114,6 +152,9 @@ interface FacultyDao {
     @Query("SELECT * FROM student")
     suspend fun getStudents(): List<StudentEntity>
 
+    @Query("SELECT * FROM academic_event")
+    suspend fun getAcademicEvents(): List<AcademicEventEntity>
+
     // ---- Memory ----
     @Query("SELECT * FROM memory ORDER BY createdAt DESC")
     fun observeMemories(): Flow<List<MemoryEntity>>
@@ -150,4 +191,7 @@ interface FacultyDao {
 
     @Query("DELETE FROM student")
     suspend fun clearStudents()
+
+    @Query("DELETE FROM academic_event")
+    suspend fun clearAcademicEvents()
 }

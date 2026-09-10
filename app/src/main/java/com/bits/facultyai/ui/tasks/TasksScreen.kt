@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -81,7 +82,10 @@ fun TasksScreen(vm: TasksViewModel = viewModel()) {
 
         KineticSectionHeader(title = "DUE", trailing = { Text(text = open.size.toString(), style = KineticType.labelBold, color = k.accent) })
         if (open.isEmpty()) {
-            Text(text = "NOTHING OPEN — ALL CLEAR", style = KineticType.label, color = k.mutedForeground)
+            KineticEmptyState(
+                title = "YOU'RE ALL CAUGHT UP",
+                message = "NO OPEN TASKS OR REMINDERS",
+            )
         } else {
             open.forEach { task ->
                 TaskRow(task = task, onToggle = { vm.toggleComplete(task) }, onDelete = { vm.delete(task) })
@@ -108,6 +112,13 @@ private fun TaskRow(task: TaskEntity, onToggle: () -> Unit, onDelete: () -> Unit
         val d = java.time.Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
         TimeUtils.relativeDayLabel(d)
     }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    // Checkbox fills with a quick spring; content cross-fades when completed.
+    val checkFill by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (task.completed) 1f else 0f,
+        animationSpec = com.bits.facultyai.ui.theme.KineticMotion.springFast(),
+        label = "checkFill",
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -117,11 +128,24 @@ private fun TaskRow(task: TaskEntity, onToggle: () -> Unit, onDelete: () -> Unit
         // Checkbox square
         Box(
             modifier = Modifier
-                .size(18.dp)
-                .background(if (task.completed) k.accent else Color.Transparent)
+                .size(24.dp)
+                .background(k.accent.copy(alpha = checkFill))
                 .border(KineticBorder.heavy, if (task.completed) k.accent else k.foreground)
-                .clickable(onClick = onToggle),
-        )
+                .clickable {
+                    com.bits.facultyai.ui.components.KineticHaptics.success(context)
+                    onToggle()
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            if (checkFill > 0.6f) {
+                Text(
+                    text = "\u2713",
+                    style = KineticType.labelBold,
+                    color = k.accentForeground,
+                    modifier = Modifier.graphicsLayer { alpha = ((checkFill - 0.6f) / 0.4f).coerceIn(0f, 1f) },
+                )
+            }
+        }
         Spacer(Modifier.width(KineticSpacing.md))
         Column(Modifier.weight(1f)) {
             Text(

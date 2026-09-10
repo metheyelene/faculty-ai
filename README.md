@@ -1,8 +1,8 @@
-# Faculty AI — Personal Academic Assistant
+# Acadora (Faculty AI) — Personal Academic Assistant
 
 A premium, kinetic-typography personal academic assistant for ECE faculty, built with Kotlin + Jetpack Compose. The app is designed around one principle: **it knows how you work** — everything personal on screen comes from your own profile, timetable, tasks, notes and saved memories. Nothing is faked.
 
-**Status: builds clean, produces an installable APK at `app/build/outputs/apk/debug/app-debug.apk`.**
+**Status: production-ready — R8-minified, signed release. Download the latest APK from [Releases](https://github.com/metheyelene/faculty-ai/releases/latest).**
 
 ---
 
@@ -42,19 +42,43 @@ Design language: **Kinetic Typography** — Space Grotesk, oversized uppercase d
 
 ---
 
+## 📥 Install a Release Build (no toolchain needed)
+
+1. Open the [Releases page](https://github.com/metheyelene/faculty-ai/releases/latest).
+2. Download `app-release.apk` from the latest release.
+3. On your Android phone, open the APK (allow "install unknown apps" for your browser/file manager if asked).
+4. Verify the download (optional):
+
+```bash
+shasum -a 256 app-release.apk   # compare with the checksum in the release notes
+```
+
 ## 🔨 Building & Running
 
 Requirements: JDK 17+, Android SDK 35.
 
 ```bash
-# Standard Gradle wrapper (after running `gradle wrapper --gradle-version 8.14.3` once)
+# Debug build
 ./gradlew :app:assembleDebug
-
-# Install on a connected device/emulator
 adb install -r app/build/outputs/apk/debug/app-debug.apk
+
+# Release build — R8 minified + resource-shrunk + signed
+./gradlew :app:assembleRelease :app:bundleRelease
+# → app/build/outputs/apk/release/app-release.apk   (sideload / distribute)
+# → app/build/outputs/bundle/release/app-release.aab (Play Store upload)
 ```
 
-This repository bootstraps from a local Gradle 8.14.3 distribution in `.android-gradle-cache/` (gitignored) so `./gradlew` works immediately on the author's machine. `gradle.properties` pins `org.gradle.java.home` to the local Homebrew OpenJDK 21 — adjust for your machine.
+### Release signing
+
+The keystore and its passwords are **not** in git. To build signed releases on a new machine:
+
+1. Copy `keystore/acadora-release.jks` (kept privately) into `./keystore/`, or generate a new one with `keytool`.
+2. `cp keystore.properties.example keystore.properties` and fill in the store path, passwords, and alias.
+3. Run `./gradlew :app:assembleRelease` — the signing config is picked up automatically. Without `keystore.properties`, release builds still succeed but produce unsigned artifacts.
+
+> 🔐 **Keep the keystore + `mapping.txt` (in `app/build/outputs/mapping/release/`) safe.** The keystore proves app identity across updates; the mapping file deobfuscates release crash stack traces (upload it to Play Console's deobfuscation files section).
+
+The repository bootstraps from a local Gradle 8.14.3 distribution in `.android-gradle-cache/` (gitignored) so `./gradlew` works immediately on the author's machine. If the Gradle daemon fails to start, point `org.gradle.java.home` in `gradle.properties` at your JDK 17+ install.
 
 The app seeds realistic sample data (11 timetable slots across 3 subjects, 12 students, 5 notes, 4 tasks, 1 memory) on first launch, so the demo works offline with zero backend configuration.
 

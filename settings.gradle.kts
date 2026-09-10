@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "Faculty AI"
+rootProject.name = "Acadora"
 include(":app")

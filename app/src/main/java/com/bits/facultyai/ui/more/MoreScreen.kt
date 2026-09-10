@@ -41,6 +41,7 @@ fun MoreScreen(onNavigate: (String) -> Unit) {
 
         KineticSectionHeader(title = "ACADEMIC")
         MoreRow("MY TIMETABLE", "Weekly schedule", { onNavigate("timetable") })
+        MoreRow("ACADEMIC CALENDAR", "Events, exams and deadlines", { onNavigate("calendar") })
         MoreRow("ATTENDANCE", "Mark and review sessions", { onNavigate("attendance") })
         MoreRow("STUDENTS", "Sections and rosters", { onNavigate("students") })
 

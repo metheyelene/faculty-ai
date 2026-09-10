@@ -19,17 +19,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewModelScope
 import com.bits.facultyai.data.local.FacultyDatabase
-import com.bits.facultyai.data.Seeder
 import com.bits.facultyai.data.prefs.AppSettings
 import com.bits.facultyai.data.prefs.SettingsRepository
+import com.bits.facultyai.ui.components.KineticButton
 import com.bits.facultyai.ui.components.KineticDisplayText
+import com.bits.facultyai.ui.components.KineticGhostButton
+import com.bits.facultyai.ui.components.KineticOutlinedButton
 import com.bits.facultyai.ui.components.KineticSectionHeader
 import com.bits.facultyai.ui.theme.KineticBorder
 import com.bits.facultyai.ui.theme.KineticSpacing
 import com.bits.facultyai.ui.theme.KineticType
 import com.bits.facultyai.ui.theme.LocalKineticColors
 import com.bits.facultyai.ui.theme.ThemeMode
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -45,7 +46,7 @@ class SettingsViewModel(application: Application) : ViewModel() {
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { settingsRepo.setThemeMode(mode) }
     fun setGreetingStyle(style: Int) = viewModelScope.launch { settingsRepo.setGreetingStyle(style) }
 
-    /** Clears all user-created content so the seeder restores the demo data set. */
+    /** Clears all user-created content and restores the starter data set. */
     fun resetData() = viewModelScope.launch {
         dao.clearTimetable()
         dao.clearTasks()
@@ -54,7 +55,8 @@ class SettingsViewModel(application: Application) : ViewModel() {
         dao.clearAttendance()
         dao.clearAttendanceEntries()
         dao.clearStudents()
-        Seeder.seedIfFirstRun(dao)
+        dao.clearAcademicEvents()
+        com.bits.facultyai.data.Seeder.seedIfFirstRun(dao)
     }
 }
 
@@ -71,7 +73,10 @@ fun SettingsScreen(onBack: () -> Unit, onThemeChange: (ThemeMode) -> Unit, vm: S
             .padding(horizontal = KineticSpacing.lg),
     ) {
         Spacer(Modifier.height(KineticSpacing.xl))
-        KineticDisplayText(text = "SETTINGS", style = KineticType.display.copy(fontSize = 44.sp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            KineticGhostButton(text = "← BACK", onClick = onBack)
+        }
+        KineticDisplayText(text = "SETTINGS", style = KineticType.display.copy(fontSize = 40.sp))
         Spacer(Modifier.height(KineticSpacing.xl))
 
         KineticSectionHeader(title = "APPEARANCE")
@@ -84,33 +89,43 @@ fun SettingsScreen(onBack: () -> Unit, onThemeChange: (ThemeMode) -> Unit, vm: S
         KineticSectionHeader(title = "GREETING STYLE")
         Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)) {
             ThemeChip("TIME-BASED", (settings?.greetingStyle ?: 0) == 0) { vm.setGreetingStyle(0) }
-            ThemeChip("WELCOME BACK", (settings?.greetingStyle ?: 0) == 1) { vm.setGreetingStyle(1) }
-            ThemeChip("HELLO", (settings?.greetingStyle ?: 0) == 2) { vm.setGreetingStyle(2) }
+            ThemeChip("WELCOME BACK", (settings?.greetingStyle ?: 1) == 1) { vm.setGreetingStyle(1) }
+            ThemeChip("HELLO", (settings?.greetingStyle ?: 2) == 2) { vm.setGreetingStyle(2) }
         }
 
         KineticSectionHeader(title = "PRIVACY")
         Text(
             text = "Memory and AI privacy controls live in MY MEMORY.",
-            style = KineticType.label,
+            style = KineticType.label.copy(fontSize = 12.sp),
+            color = k.mutedForeground,
+        )
+
+        KineticSectionHeader(title = "HOME-SCREEN WIDGETS")
+        Text(
+            text = "Add \"Next Class\", \"Today's Schedule\" and \"Quick Assistant\" from your launcher's widget picker. They update automatically with your timetable and tasks.",
+            style = KineticType.label.copy(fontSize = 12.sp),
             color = k.mutedForeground,
         )
 
         KineticSectionHeader(title = "DATA")
         var confirmReset by remember { mutableStateOf(false) }
         if (confirmReset) {
-            Text(text = "DELETE ALL TIMETABLE, TASKS, NOTES, MEMORIES AND ATTENDANCE?", style = KineticType.labelBold, color = k.statusError)
+            Text(
+                text = "DELETE ALL TIMETABLE, TASKS, NOTES, MEMORIES AND ATTENDANCE?",
+                style = KineticType.labelBold,
+                color = k.statusError,
+            )
             Spacer(Modifier.height(KineticSpacing.sm))
             Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)) {
-                com.bits.facultyai.ui.components.KineticButton(text = "YES, RESET", onClick = { vm.resetData(); confirmReset = false })
-                com.bits.facultyai.ui.components.KineticGhostButton(text = "CANCEL", onClick = { confirmReset = false })
+                KineticButton(text = "YES, RESET", onClick = { vm.resetData(); confirmReset = false })
+                KineticGhostButton(text = "CANCEL", onClick = { confirmReset = false })
             }
         } else {
-            com.bits.facultyai.ui.components.KineticOutlinedButton(text = "RESET DEMO DATA", onClick = { confirmReset = true })
+            KineticOutlinedButton(text = "RESET APP DATA", onClick = { confirmReset = true })
         }
 
         Spacer(Modifier.height(KineticSpacing.lg))
-        com.bits.facultyai.ui.components.KineticGhostButton(text = "← BACK", onClick = onBack)
-        Spacer(Modifier.height(96.dp))
+        Spacer(Modifier.height(KineticSpacing.xl))
     }
 }
 

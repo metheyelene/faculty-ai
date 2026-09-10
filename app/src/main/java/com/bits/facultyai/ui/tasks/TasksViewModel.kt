@@ -42,6 +42,22 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** Adds a task from the calendar/assistant flows with explicit fields. */
+    fun addTask(title: String, dueAt: Long?, priority: String = "MEDIUM", category: String = "GENERAL") {
+        viewModelScope.launch {
+            val id = dao.insertTask(
+                TaskEntity(
+                    title = title,
+                    dueAt = dueAt,
+                    priority = priority,
+                    category = category,
+                    createdAt = System.currentTimeMillis(),
+                )
+            )
+            dueAt?.let { ReminderScheduler.scheduleTaskReminder(getApplication(), id, title, it) }
+        }
+    }
+
     fun toggleComplete(task: TaskEntity) {
         viewModelScope.launch {
             dao.updateTask(task.copy(completed = !task.completed))
@@ -54,5 +70,6 @@ class TasksViewModel(application: Application) : AndroidViewModel(application) {
     fun delete(task: TaskEntity) = viewModelScope.launch {
         ReminderScheduler.cancelTaskReminder(getApplication(), task.id)
         dao.deleteTask(task.id)
+        com.bits.facultyai.widget.WidgetRefresher.refreshAll(getApplication())
     }
 }

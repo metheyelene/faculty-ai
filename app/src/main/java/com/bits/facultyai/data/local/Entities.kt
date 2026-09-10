@@ -23,6 +23,8 @@ data class FacultyProfileEntity(
     val cabin: String,
     val academicYear: String,
     val semester: String,
+    val subjects: String = "",
+    val photoUri: String = "",
     val onboardingComplete: Boolean,
     val profileLocked: Boolean,
     val updatedAt: Long,
@@ -43,6 +45,35 @@ data class ClassSlotEntity(
     val subject: String,
     val section: String,
     val room: String,
+)
+
+/**
+ * A versioned snapshot of the whole timetable, created whenever the user
+ * confirms a new (e.g. photo-imported) timetable. History is never destroyed
+ * by a replacement — only archived.
+ */
+@Entity(tableName = "timetable_version")
+data class TimetableVersionEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val versionNumber: Int,
+    val createdAt: Long,
+    val sourceLabel: String, // "Photo import" | "Manual" | ...
+    val sourceImageUri: String = "",
+    val slotCount: Int,
+    val slotsJson: String, // serialized slots, for archival/review
+)
+
+/**
+ * Academic calendar event — semester dates, exams, holidays, meetings, etc.
+ */
+@Entity(tableName = "academic_event", indices = [Index("date")])
+data class AcademicEventEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val title: String,
+    val date: String, // ISO yyyy-MM-dd
+    val endDate: String? = null, // inclusive; for multi-day events
+    val category: String, // EXAM | HOLIDAY | MEETING | DEADLINE | ACADEMIC | EVENT
+    val notes: String = "",
 )
 
 /**
@@ -101,6 +132,8 @@ data class NoteEntity(
     val body: String,
     val folder: String, // LECTURES, MEETINGS, RESEARCH, PERSONAL, LESSON PLANS, IDEAS
     val subject: String?,
+    val favorite: Boolean = false,
+    val archived: Boolean = false,
     val updatedAt: Long = 0L,
     val createdAt: Long = 0L,
 )
@@ -112,8 +145,11 @@ data class NoteEntity(
 data class TaskEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val title: String,
+    val description: String = "",
     val dueAt: Long?, // epoch millis, nullable = no due date
     val priority: String, // HIGH | MEDIUM | LOW
+    val category: String = "GENERAL", // GENERAL | CLASS | MEETING | EXAM | ADMIN
+    val recurrence: String = "NONE", // NONE | DAILY | WEEKLY
     val completed: Boolean = false,
     val createdAt: Long = 0L,
 )

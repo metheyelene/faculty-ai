@@ -9,13 +9,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -24,8 +30,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.bits.facultyai.data.prefs.AppSettings
+import com.bits.facultyai.ui.calendar.CalendarScreen
 import com.bits.facultyai.ui.theme.KineticMotion
-import com.bits.facultyai.ui.theme.KineticSpacing
 import com.bits.facultyai.ui.theme.KineticType
 import com.bits.facultyai.ui.theme.LocalKineticColors
 import com.bits.facultyai.ui.theme.ThemeMode
@@ -57,6 +63,7 @@ private object Routes {
     const val NOTES = "notes"
     const val NOTE_EDITOR = "note_editor/{noteId}"
     const val TASKS = "tasks"
+    const val CALENDAR = "calendar"
     const val ASSISTANT = "assistant"
     const val MEMORY = "memory"
     const val MORE = "more"
@@ -73,6 +80,8 @@ private val topLevelRoutes = setOf(Routes.HOME, Routes.TIMETABLE, Routes.ATTENDA
 @Composable
 fun FacultyAINavHost(
     settings: AppSettings?,
+    deepLinkRoute: String? = null,
+    onDeepLinkHandled: () -> Unit = {},
     onThemeChange: (ThemeMode) -> Unit,
     onOnboardingComplete: () -> Unit,
 ) {
@@ -80,15 +89,45 @@ fun FacultyAINavHost(
 
     // Wait for settings before deciding the start destination (splash-like hold).
     if (settings == null) {
+        // Premium open: brand mark rises in with a soft scale — no artificial delay.
+        var shown by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) { shown = true }
+        val brandAlpha by androidx.compose.animation.core.animateFloatAsState(
+            targetValue = if (shown) 1f else 0f,
+            animationSpec = tween(KineticMotion.SLOW_MS, easing = KineticMotion.easeOut),
+            label = "brandAlpha",
+        )
+        val brandScale by androidx.compose.animation.core.animateFloatAsState(
+            targetValue = if (shown) 1f else 0.96f,
+            animationSpec = KineticMotion.springSpatial(),
+            label = "brandScale",
+        )
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(k.background),
+                .background(k.background)
+                .statusBarsPadding()
+                .navigationBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Spacer(modifier = Modifier.weight(1f))
-            Text(text = "FACULTY AI", style = KineticType.display.copy(fontSize = 40.sp), color = k.foreground)
-            Text(text = "LOADING", style = KineticType.label, color = k.accent)
+            Text(
+                text = "ACADORA",
+                style = KineticType.display.copy(fontSize = 40.sp),
+                color = k.foreground,
+                modifier = Modifier.graphicsLayer {
+                    alpha = brandAlpha
+                    scaleX = brandScale
+                    scaleY = brandScale
+                },
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "LOADING",
+                style = KineticType.label,
+                color = k.accent,
+                modifier = Modifier.graphicsLayer { alpha = brandAlpha },
+            )
             Spacer(modifier = Modifier.weight(1f))
         }
         return
@@ -99,18 +138,38 @@ fun FacultyAINavHost(
     val currentRoute = backStack?.destination?.route
     val showBottomBar = currentRoute in topLevelRoutes
 
+    // Notification deep links: navigate once when a link arrives.
+    LaunchedEffect(deepLinkRoute) {
+        when (deepLinkRoute) {
+            "timetable" -> navController.navigate(Routes.TIMETABLE) { launchSingleTop = true }
+            "tasks" -> navController.navigate(Routes.TASKS) { launchSingleTop = true }
+            "calendar" -> navController.navigate(Routes.CALENDAR) { launchSingleTop = true }
+        }
+        if (deepLinkRoute != null) onDeepLinkHandled()
+    }
+
     Column(modifier = Modifier.fillMaxSize().background(k.background)) {
         NavHost(
             navController = navController,
             startDestination = if (!settings.onboardingComplete) Routes.ONBOARDING else Routes.HOME,
             modifier = Modifier.weight(1f),
+            // Spatial continuity: forward slides left, back slides right,
+            // always with a soft cross-fade. Fast, Apple-like ease-out.
             enterTransition = {
-                fadeIn(tween(KineticMotion.MEDIUM_MS)) + slideInHorizontally(tween(KineticMotion.MEDIUM_MS)) { it / 8 }
+                fadeIn(tween(KineticMotion.MEDIUM_MS, easing = KineticMotion.easeOut)) +
+                    slideInHorizontally(tween(KineticMotion.MEDIUM_MS, easing = KineticMotion.easeOut)) { it / 10 }
             },
-            exitTransition = { fadeOut(tween(KineticMotion.FAST_MS)) },
-            popEnterTransition = { fadeIn(tween(KineticMotion.FAST_MS)) },
+            exitTransition = {
+                fadeOut(tween(KineticMotion.FAST_MS, easing = KineticMotion.standard)) +
+                    slideOutHorizontally(tween(KineticMotion.FAST_MS, easing = KineticMotion.standard)) { -it / 14 }
+            },
+            popEnterTransition = {
+                fadeIn(tween(KineticMotion.MEDIUM_MS, easing = KineticMotion.easeOut)) +
+                    slideInHorizontally(tween(KineticMotion.MEDIUM_MS, easing = KineticMotion.easeOut)) { -it / 10 }
+            },
             popExitTransition = {
-                fadeOut(tween(KineticMotion.FAST_MS)) + slideOutHorizontally(tween(KineticMotion.FAST_MS)) { it / 8 }
+                fadeOut(tween(KineticMotion.FAST_MS, easing = KineticMotion.standard)) +
+                    slideOutHorizontally(tween(KineticMotion.FAST_MS, easing = KineticMotion.standard)) { it / 14 }
             },
         ) {
             composable(Routes.ONBOARDING) {
@@ -140,6 +199,9 @@ fun FacultyAINavHost(
                 NoteEditorScreen(noteId = id, onBack = { navController.popBackStack() })
             }
             composable(Routes.TASKS) { TasksScreen() }
+            composable(Routes.CALENDAR) {
+                CalendarScreen(onBack = { navController.popBackStack() })
+            }
             composable(Routes.ASSISTANT) { AssistantScreen() }
             composable(Routes.MEMORY) { MemoryScreen() }
             composable(Routes.MORE) { MoreScreen(onNavigate = { navController.navigate(it) }) }

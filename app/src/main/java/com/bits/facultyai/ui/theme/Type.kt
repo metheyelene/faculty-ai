@@ -45,9 +45,9 @@ object KineticType {
     val label = TextStyle(
         fontFamily = SpaceGrotesk,
         fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 13.sp,
-        letterSpacing = 1.2.sp,
+        fontSize = 12.sp,
+        lineHeight = 15.sp,
+        letterSpacing = 1.sp,
     )
 
     val labelBold = label.copy(fontWeight = FontWeight.Bold)

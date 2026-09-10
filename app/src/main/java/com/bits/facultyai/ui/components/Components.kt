@@ -202,10 +202,12 @@ fun KineticButton(
     height: Int = 52,
 ) {
     val k = LocalKineticColors.current
+    val interaction = remember { MutableInteractionSource() }
     Button(
         onClick = onClick,
         enabled = enabled,
         shape = KineticShape.sharp,
+        interactionSource = interaction,
         colors = ButtonDefaults.buttonColors(
             containerColor = k.accent,
             contentColor = k.accentForeground,
@@ -213,7 +215,9 @@ fun KineticButton(
             disabledContentColor = k.mutedForeground,
         ),
         contentPadding = PaddingValues(horizontal = KineticSpacing.lg, vertical = KineticSpacing.md),
-        modifier = modifier.height(height.dp),
+        modifier = modifier
+            .height(height.dp)
+            .kineticPressable(interaction, pressedScale = 0.96f),
     ) {
         Text(
             text = text.uppercase(),
@@ -234,17 +238,21 @@ fun KineticOutlinedButton(
     height: Int = 52,
 ) {
     val k = LocalKineticColors.current
+    val interaction = remember { MutableInteractionSource() }
     OutlinedButton(
         onClick = onClick,
         enabled = enabled,
         shape = KineticShape.sharp,
+        interactionSource = interaction,
         colors = ButtonDefaults.outlinedButtonColors(
             contentColor = k.foreground,
             disabledContentColor = k.mutedForeground,
         ),
         border = BorderStroke(KineticBorder.heavy, if (enabled) k.foreground else k.border),
         contentPadding = PaddingValues(horizontal = KineticSpacing.lg, vertical = KineticSpacing.md),
-        modifier = modifier.height(height.dp),
+        modifier = modifier
+            .height(height.dp)
+            .kineticPressable(interaction, pressedScale = 0.96f),
     ) {
         Text(
             text = text.uppercase(),
