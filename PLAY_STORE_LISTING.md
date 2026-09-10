@@ -46,11 +46,13 @@ bracketed placeholders before submitting.
 
 ## Graphics checklist
 
-- [ ] App icon 512×512 PNG (32-bit, no transparency) — export from
-      `ic_launcher_foreground` over the `#DFE104` accent background
-- [ ] Feature graphic 1024×500 (kinetic typography: "ACADORA — KNOWS YOUR DAY")
-- [ ] 2–8 phone screenshots (Home, Timetable, Attendance, Tasks quick-add,
-      Assistant, Memory) — capture from a device/emulator at 1080×1920+
+All base assets are **generated** in `docs/store/` (re-render via `python3 docs/render_store_assets.py`):
+
+- [x] App icon 512×512 PNG — `docs/store/icon-512.png`
+- [x] Feature graphic 1024×500 — `docs/store/feature-graphic.png` ("KNOWS YOUR DAY" kinetic typography)
+- [x] 5 phone screenshots 1080×2340 — `docs/store/phone-0*.png` (Home, Timetable, Tasks, Assistant, Attendance)
+- [ ] Replace mockup screenshots with real device captures before production
+      (optional but recommended)
 - [ ] (Optional) 7" and 10" tablet screenshots
 
 ## Privacy policy
@@ -92,9 +94,11 @@ updated — the README roadmap flags those seams.
 - [x] Signed release AAB (`app-release.aab`) built with the release keystore
 - [x] Keystore + passwords gitignored, backed up privately
 - [x] `mapping.txt` archived (upload to Play Console → deobfuscation files)
-- [x] versionCode incremented (2)
-- [ ] Store listing text + graphics uploaded
-- [ ] Privacy policy URL live
-- [ ] Internal testing track pass on a real device (onboarding → attendance →
-      reminder notification → widgets)
-- [ ] App content declarations (data safety, ads, content rating) submitted
+- [x] versionCode incremented (3)
+- [x] Store listing text written (this document) + graphics generated (`docs/store/`)
+- [x] Privacy policy drafted (`docs/privacy-policy.html`) — host via GitHub Pages,
+      see `docs/play-console-walkthrough.md` §5
+- [ ] Internal testing track pass on a real device — full guide in
+      `docs/play-console-walkthrough.md` (§3 upload, §6 device checklist)
+- [ ] App content declarations submitted — exact answers in
+      `docs/play-console-walkthrough.md` §2

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  body { width: 1024px; height: 500px; background: #09090B; color: #FAFAFA;
+    font-family: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif; overflow: hidden; }
+  .canvas { width: 1024px; height: 500px; padding: 56px 64px; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
+  .top { display: flex; justify-content: space-between; align-items: center; }
+  .brand { font-size: 30px; font-weight: 700; letter-spacing: 0.5em; text-transform: uppercase; }
+  .tag { border: 2px solid #DFE104; color: #DFE104; font-size: 20px; font-weight: 700; letter-spacing: 0.22em; padding: 12px 18px; text-transform: uppercase; }
+  .headline { font-size: 128px; font-weight: 700; letter-spacing: -0.03em; line-height: 0.95; text-transform: uppercase; }
+  .headline .accent { color: #DFE104; }
+  .foot { display: flex; gap: 20px; }
+  .chip { border: 2px solid #27272A; color: #A1A1AA; font-size: 22px; font-weight: 700; letter-spacing: 0.18em; padding: 14px 22px; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="top">
+    <div class="brand">Acadora</div>
+    <div class="tag">Faculty Edition</div>
+  </div>
+  <div class="headline">Knows<br>your <span class="accent">day.</span></div>
+  <div class="foot">
+    <div class="chip">Timetable</div>
+    <div class="chip">Attendance</div>
+    <div class="chip">Tasks</div>
+    <div class="chip">Assistant</div>
+  </div>
+</div>
+</body>
+</html>

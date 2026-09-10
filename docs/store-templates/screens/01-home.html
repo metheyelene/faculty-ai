@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../kinetic.css">
+<style>
+  body { width: 1080px; height: 2340px; }
+  .phone {
+    width: 1080px; height: 2340px; background: #09090B; color: #FAFAFA;
+    display: flex; flex-direction: column; overflow: hidden;
+    padding: 90px 64px 110px; position: relative;
+  }
+  /* Status bar */
+  .status {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 30px; font-weight: 500; color: #FAFAFA;
+    padding: 0 8px 36px;
+  }
+  .status .icons { letter-spacing: 10px; font-size: 26px; }
+  /* Greeting block */
+  .greet-label { font-size: 28px; font-weight: 700; letter-spacing: 0.22em; color: #A1A1AA; margin-bottom: 18px; }
+  .greet { font-size: 104px; font-weight: 700; letter-spacing: -0.03em; line-height: 0.95; text-transform: uppercase; }
+  .greet .thin { color: #A1A1AA; }
+  .date-line { font-size: 30px; font-weight: 500; letter-spacing: 0.18em; color: #52525B; margin-top: 26px; text-transform: uppercase; }
+  /* TODAY header + stats */
+  .sec { display: flex; align-items: center; gap: 24px; margin: 74px 0 34px; }
+  .sec .t { font-size: 28px; font-weight: 700; letter-spacing: 0.22em; color: #FAFAFA; }
+  .sec::after { content: ''; flex: 1; height: 2px; background: #27272A; }
+  .stats { display: flex; gap: 28px; }
+  .stat { flex: 1; border: 2px solid #27272A; padding: 40px 36px; }
+  .stat.accent { border-color: #DFE104; }
+  .stat .n { font-size: 118px; font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
+  .stat.accent .n { color: #DFE104; }
+  .stat .l { font-size: 24px; font-weight: 500; letter-spacing: 0.2em; color: #A1A1AA; margin-top: 16px; text-transform: uppercase; }
+  /* Next class card */
+  .nc-label { display: flex; align-items: center; gap: 24px; margin: 74px 0 34px; }
+  .nc-label .t { font-size: 28px; font-weight: 700; letter-spacing: 0.22em; color: #FAFAFA; }
+  .nc-label::after { content: ''; flex: 1; height: 2px; background: #27272A; }
+  .next-class { border: 2px solid #DFE104; display: flex; }
+  .next-class .stripe { width: 10px; background: #DFE104; flex-shrink: 0; }
+  .next-class .body { padding: 44px 40px; flex: 1; }
+  .subj { font-size: 62px; font-weight: 700; letter-spacing: -0.01em; line-height: 1; }
+  .meta { font-size: 30px; font-weight: 500; letter-spacing: 0.14em; color: #A1A1AA; margin-top: 22px; text-transform: uppercase; }
+  .countdown {
+    display: inline-block; margin-top: 36px; background: #DFE104; color: #09090B;
+    font-size: 28px; font-weight: 700; letter-spacing: 0.2em; padding: 18px 28px; text-transform: uppercase;
+  }
+  /* Shortcut grid */
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 34px; }
+  .shortcut { border: 2px solid #27272A; padding: 34px 36px; display: flex; align-items: center; gap: 26px; }
+  .shortcut .glyph { font-size: 40px; color: #DFE104; font-weight: 700; }
+  .shortcut .name { font-size: 30px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+  /* Bottom nav */
+  .nav {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    border-top: 2px solid #27272A; background: #09090B;
+    display: flex; padding: 34px 40px 60px;
+  }
+  .nav .item { flex: 1; text-align: center; font-size: 24px; font-weight: 700; letter-spacing: 0.16em; color: #52525B; text-transform: uppercase; }
+  .nav .item.active { color: #DFE104; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status"><span>9:41</span><span class="icons">&#9679;&#9679;&#9679; &#9635;</span></div>
+
+  <div class="greet-label">GOOD MORNING</div>
+  <div class="greet">Kiran<span class="thin">.</span></div>
+  <div class="date-line">WEDNESDAY, SEPTEMBER 10</div>
+
+  <div class="sec"><span class="t">TODAY</span></div>
+  <div class="stats">
+    <div class="stat"><div class="n">3</div><div class="l">Classes</div></div>
+    <div class="stat accent"><div class="n">2</div><div class="l">Tasks Due</div></div>
+    <div class="stat"><div class="n">5</div><div class="l">This Week</div></div>
+  </div>
+
+  <div class="nc-label"><span class="t">NEXT CLASS</span></div>
+  <div class="next-class">
+    <div class="stripe"></div>
+    <div class="body">
+      <div class="subj">Digital Signal Processing</div>
+      <div class="meta">10:30 — 11:25 · Room 204 · 3RD YEAR</div>
+      <div class="countdown">STARTS IN 42 MIN</div>
+    </div>
+  </div>
+
+  <div class="sec"><span class="t">JUMP TO</span></div>
+  <div class="grid">
+    <div class="shortcut"><span class="glyph">&#9636;</span><span class="name">Timetable</span></div>
+    <div class="shortcut"><span class="glyph">&#10003;</span><span class="name">Attendance</span></div>
+    <div class="shortcut"><span class="glyph">&#9998;</span><span class="name">Tasks</span></div>
+    <div class="shortcut"><span class="glyph">&#9733;</span><span class="name">Assistant</span></div>
+  </div>
+
+  <div class="nav">
+    <div class="item active">Home</div>
+    <div class="item">Calendar</div>
+    <div class="item">Assistant</div>
+    <div class="item">Space</div>
+  </div>
+</div>
+</body>
+</html>

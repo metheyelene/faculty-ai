@@ -1,0 +1,75 @@
+/* Acadora kinetic design system — shared styles for store graphics */
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+
+:root {
+  --bg: #09090B;
+  --surface: #111113;
+  --muted: #18181B;
+  --border: #27272A;
+  --fg: #FAFAFA;
+  --muted-fg: #A1A1AA;
+  --accent: #DFE104;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'Space Grotesk', 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Giant editorial display text */
+.display {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+}
+.display-xl { font-size: 150px; }
+.display-lg { font-size: 96px; }
+
+/* Small bold uppercase label */
+.label {
+  font-size: 26px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--muted-fg);
+}
+.label-fg { color: var(--fg); }
+.label-accent { color: var(--accent); }
+
+/* Structural rule with optional inline label */
+.rule {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.rule::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+}
+
+/* Flat bordered card */
+.card {
+  border: 2px solid var(--border);
+  background: transparent;
+}
+.card-accent { border-color: var(--accent); }
+.card-filled { background: var(--muted); }
+
+/* Accent stripe on card left edge */
+.stripe {
+  width: 8px;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+/* Stat block */
+.stat-number {
+  font-size: 132px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}

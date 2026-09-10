@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../kinetic.css">
+<style>
+  body { width: 1080px; height: 2340px; }
+  .phone { width: 1080px; height: 2340px; background: #09090B; color: #FAFAFA; display: flex; flex-direction: column; overflow: hidden; padding: 90px 64px 0; position: relative; }
+  .status { display: flex; justify-content: space-between; align-items: center; font-size: 30px; font-weight: 500; color: #FAFAFA; padding: 0 8px 36px; }
+  .status .icons { letter-spacing: 10px; font-size: 26px; }
+  .title { font-size: 96px; font-weight: 700; letter-spacing: -0.03em; line-height: 0.95; text-transform: uppercase; margin-bottom: 50px; }
+  .chat { flex: 1; display: flex; flex-direction: column; gap: 34px; }
+  .q { align-self: flex-end; max-width: 78%; border: 2px solid #27272A; padding: 30px 34px; font-size: 34px; font-weight: 500; line-height: 1.35; }
+  .a { align-self: flex-start; max-width: 86%; border: 2px solid #27272A; padding: 0; }
+  .a .row { display: flex; }
+  .a .stripe { width: 10px; background: #DFE104; flex-shrink: 0; }
+  .a .text { padding: 30px 34px; font-size: 34px; font-weight: 500; line-height: 1.4; }
+  .a .src { display: flex; align-items: center; gap: 14px; border-top: 2px solid #27272A; padding: 22px 34px; }
+  .a .src .chip { border: 2px solid #DFE104; color: #DFE104; font-size: 22px; font-weight: 700; letter-spacing: 0.18em; padding: 10px 16px; text-transform: uppercase; }
+  .a .src .label { font-size: 22px; letter-spacing: 0.18em; color: #52525B; font-weight: 700; }
+  .inputbar { border: 2px solid #27272A; display: flex; align-items: center; margin: 40px 0 46px; }
+  .inputbar .placeholder { flex: 1; padding: 34px 34px; font-size: 32px; font-weight: 500; color: #52525B; }
+  .inputbar .send { background: #DFE104; color: #09090B; font-size: 28px; font-weight: 700; letter-spacing: 0.18em; padding: 34px 38px; }
+  .nav { border-top: 2px solid #27272A; background: #09090B; display: flex; padding: 34px 40px 60px; margin: 0 -64px; }
+  .nav .item { flex: 1; text-align: center; font-size: 24px; font-weight: 700; letter-spacing: 0.16em; color: #52525B; text-transform: uppercase; }
+  .nav .item.active { color: #DFE104; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status"><span>9:41</span><span class="icons">&#9679;&#9679;&#9679; &#9635;</span></div>
+  <div class="title">My Assistant</div>
+
+  <div class="chat">
+    <div class="q">What is my next class?</div>
+    <div class="a">
+      <div class="row">
+        <div class="stripe"></div>
+        <div class="text">Your next class is <b>Digital Signal Processing</b> at 10:30 in Room 204, 3rd year.</div>
+      </div>
+      <div class="src"><span class="label">SOURCE</span><span class="chip">TIMETABLE</span></div>
+    </div>
+    <div class="q">Find my notes about DSP</div>
+    <div class="a">
+      <div class="row">
+        <div class="stripe"></div>
+        <div class="text">Found "DSP Unit 3 — Z-Transform" in your Lectures folder. Tap to open it.</div>
+      </div>
+      <div class="src"><span class="label">SOURCE</span><span class="chip">NOTES</span></div>
+    </div>
+  </div>
+
+  <div class="inputbar">
+    <div class="placeholder">Ask about your schedule, tasks, notes…</div>
+    <div class="send">SEND</div>
+  </div>
+
+  <div class="nav">
+    <div class="item">Home</div><div class="item">Calendar</div><div class="item active">Assistant</div><div class="item">Space</div>
+  </div>
+</div>
+</body>
+</html>

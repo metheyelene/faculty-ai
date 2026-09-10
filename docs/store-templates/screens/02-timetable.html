@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../kinetic.css">
+<style>
+  body { width: 1080px; height: 2340px; }
+  .phone { width: 1080px; height: 2340px; background: #09090B; color: #FAFAFA; display: flex; flex-direction: column; overflow: hidden; padding: 90px 64px 110px; position: relative; }
+  .status { display: flex; justify-content: space-between; align-items: center; font-size: 30px; font-weight: 500; color: #FAFAFA; padding: 0 8px 36px; }
+  .status .icons { letter-spacing: 10px; font-size: 26px; }
+  .title { font-size: 96px; font-weight: 700; letter-spacing: -0.03em; line-height: 0.95; text-transform: uppercase; margin-bottom: 44px; }
+  .days { display: flex; gap: 16px; margin-bottom: 50px; }
+  .day { flex: 1; border: 2px solid #27272A; text-align: center; padding: 22px 0; font-size: 26px; font-weight: 700; letter-spacing: 0.12em; color: #A1A1AA; }
+  .day.active { background: #DFE104; color: #09090B; border-color: #DFE104; }
+  .cls { border: 2px solid #27272A; padding: 40px 44px; margin-bottom: 26px; }
+  .cls.current { border-color: #DFE104; }
+  .cls.past { opacity: 0.4; }
+  .time { font-size: 30px; font-weight: 700; letter-spacing: 0.16em; color: #A1A1AA; }
+  .cls.current .time { color: #DFE104; }
+  .subj { font-size: 52px; font-weight: 700; letter-spacing: -0.01em; margin-top: 14px; }
+  .meta { font-size: 28px; font-weight: 500; letter-spacing: 0.14em; color: #A1A1AA; margin-top: 14px; text-transform: uppercase; }
+  .now-tag { display: inline-block; background: #DFE104; color: #09090B; font-size: 24px; font-weight: 700; letter-spacing: 0.2em; padding: 12px 20px; margin-top: 26px; text-transform: uppercase; }
+  .actions { display: flex; gap: 20px; margin-top: 30px; }
+  .btn { flex: 1; border: 2px solid #27272A; text-align: center; padding: 22px 0; font-size: 26px; font-weight: 700; letter-spacing: 0.16em; color: #FAFAFA; }
+  .btn.accent { border-color: #DFE104; color: #DFE104; }
+  .nav { position: absolute; left: 0; right: 0; bottom: 0; border-top: 2px solid #27272A; background: #09090B; display: flex; padding: 34px 40px 60px; }
+  .nav .item { flex: 1; text-align: center; font-size: 24px; font-weight: 700; letter-spacing: 0.16em; color: #52525B; text-transform: uppercase; }
+  .nav .item.active { color: #DFE104; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status"><span>9:41</span><span class="icons">&#9679;&#9679;&#9679; &#9635;</span></div>
+  <div class="title">My<br>Timetable</div>
+  <div class="days">
+    <div class="day">MON</div><div class="day">TUE</div><div class="day active">WED</div>
+    <div class="day">THU</div><div class="day">FRI</div><div class="day">SAT</div>
+  </div>
+
+  <div class="cls past">
+    <div class="time">08:00 — 08:55</div>
+    <div class="subj">Communication Systems</div>
+    <div class="meta">Room 101 · 2ND YEAR</div>
+  </div>
+
+  <div class="cls current">
+    <div class="time">10:30 — 11:25</div>
+    <div class="subj">Digital Signal Processing</div>
+    <div class="meta">Room 204 · 3RD YEAR</div>
+    <div class="now-tag">IN PROGRESS</div>
+    <div class="actions">
+      <div class="btn accent">ATTENDANCE</div>
+      <div class="btn">DELETE</div>
+    </div>
+  </div>
+
+  <div class="cls">
+    <div class="time">14:00 — 14:55</div>
+    <div class="subj">VLSI Design</div>
+    <div class="meta">Lab 3 · 4TH YEAR</div>
+  </div>
+
+  <div class="nav">
+    <div class="item">Home</div><div class="item">Calendar</div><div class="item">Assistant</div><div class="item active">Space</div>
+  </div>
+</div>
+</body>
+</html>

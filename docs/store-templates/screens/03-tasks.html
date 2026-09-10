@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../kinetic.css">
+<style>
+  body { width: 1080px; height: 2340px; }
+  .phone { width: 1080px; height: 2340px; background: #09090B; color: #FAFAFA; display: flex; flex-direction: column; overflow: hidden; padding: 90px 64px 110px; position: relative; }
+  .status { display: flex; justify-content: space-between; align-items: center; font-size: 30px; font-weight: 500; color: #FAFAFA; padding: 0 8px 36px; }
+  .status .icons { letter-spacing: 10px; font-size: 26px; }
+  .title { font-size: 96px; font-weight: 700; letter-spacing: -0.03em; line-height: 0.95; text-transform: uppercase; margin-bottom: 44px; }
+  .quickadd { border: 2px solid #DFE104; display: flex; align-items: center; margin-bottom: 54px; }
+  .quickadd .stripe { width: 10px; background: #DFE104; flex-shrink: 0; }
+  .quickadd .input { flex: 1; padding: 34px 30px; font-size: 32px; font-weight: 500; color: #FAFAFA; line-height: 1.3; }
+  .quickadd .input .typed { color: #FAFAFA; }
+  .quickadd .input .caret { display: inline-block; width: 3px; height: 34px; background: #DFE104; vertical-align: middle; margin-left: 4px; }
+  .quickadd .add { background: #DFE104; color: #09090B; font-size: 28px; font-weight: 700; letter-spacing: 0.18em; padding: 34px 38px; }
+  .sec { display: flex; align-items: center; gap: 24px; margin: 0 0 30px; }
+  .sec .t { font-size: 28px; font-weight: 700; letter-spacing: 0.22em; color: #DFE104; }
+  .sec::after { content: ''; flex: 1; height: 2px; background: #27272A; }
+  .task { border: 2px solid #27272A; padding: 36px 38px; margin-bottom: 24px; display: flex; align-items: flex-start; gap: 30px; }
+  .check { width: 44px; height: 44px; border: 2px solid #A1A1AA; flex-shrink: 0; margin-top: 6px; }
+  .check.done { background: #DFE104; border-color: #DFE104; }
+  .task .body { flex: 1; }
+  .task .name { font-size: 40px; font-weight: 700; line-height: 1.2; }
+  .task.done .name { color: #52525B; text-decoration: line-through; }
+  .task .due { font-size: 26px; font-weight: 500; letter-spacing: 0.16em; color: #A1A1AA; margin-top: 12px; text-transform: uppercase; }
+  .tag { display: inline-block; border: 2px solid #DFE104; color: #DFE104; font-size: 22px; font-weight: 700; letter-spacing: 0.18em; padding: 10px 16px; margin-top: 20px; text-transform: uppercase; }
+  .nav { position: absolute; left: 0; right: 0; bottom: 0; border-top: 2px solid #27272A; background: #09090B; display: flex; padding: 34px 40px 60px; }
+  .nav .item { flex: 1; text-align: center; font-size: 24px; font-weight: 700; letter-spacing: 0.16em; color: #52525B; text-transform: uppercase; }
+  .nav .item.active { color: #DFE104; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status"><span>9:41</span><span class="icons">&#9679;&#9679;&#9679; &#9635;</span></div>
+  <div class="title">My Tasks</div>
+
+  <div class="quickadd">
+    <div class="stripe"></div>
+    <div class="input"><span class="typed">remind me tomorrow 9am submit internal marks</span><span class="caret"></span></div>
+    <div class="add">ADD</div>
+  </div>
+
+  <div class="sec"><span class="t">TOMORROW · SEP 11</span></div>
+  <div class="task">
+    <div class="check"></div>
+    <div class="body">
+      <div class="name">Submit internal marks</div>
+      <div class="due">09:00 AM · REMINDER SET</div>
+      <div class="tag">PARSED FROM TEXT</div>
+    </div>
+  </div>
+  <div class="task">
+    <div class="check"></div>
+    <div class="body">
+      <div class="name">Prepare DSP unit-3 slides</div>
+      <div class="due">06:00 PM · REMINDER SET</div>
+    </div>
+  </div>
+
+  <div class="sec"><span class="t">THIS WEEK</span></div>
+  <div class="task">
+    <div class="check done"></div>
+    <div class="body">
+      <div class="name">Grade mid-semester papers</div>
+      <div class="due">FRI · DONE</div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div class="item">Home</div><div class="item">Calendar</div><div class="item">Assistant</div><div class="item active">Space</div>
+  </div>
+</div>
+</body>
+</html>
