@@ -1,0 +1,153 @@
+package com.bits.facultyai.data.local
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Update
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface FacultyDao {
+
+    // ---- Profile ----
+    @Query("SELECT * FROM faculty_profile WHERE id = 1")
+    fun observeProfile(): Flow<FacultyProfileEntity?>
+
+    @Query("SELECT * FROM faculty_profile WHERE id = 1")
+    suspend fun getProfile(): FacultyProfileEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertProfile(profile: FacultyProfileEntity)
+
+    // ---- Timetable ----
+    @Query("SELECT * FROM class_slot ORDER BY dayOfWeek, startTimeMinutes")
+    fun observeTimetable(): Flow<List<ClassSlotEntity>>
+
+    @Query("SELECT * FROM class_slot ORDER BY dayOfWeek, startTimeMinutes")
+    suspend fun getTimetable(): List<ClassSlotEntity>
+
+    @Insert
+    suspend fun insertClassSlot(slot: ClassSlotEntity): Long
+
+    @Update
+    suspend fun updateClassSlot(slot: ClassSlotEntity)
+
+    @Query("DELETE FROM class_slot WHERE id = :id")
+    suspend fun deleteClassSlot(id: Long)
+
+    @Query("SELECT COUNT(*) FROM class_slot WHERE dayOfWeek = :day AND startTimeMinutes < :end AND endTimeMinutes > :start")
+    suspend fun countOverlapping(day: Int, start: Int, end: Int): Int
+
+    // ---- Attendance ----
+    @Query("SELECT * FROM attendance_record ORDER BY markedAt DESC")
+    fun observeAttendanceRecords(): Flow<List<AttendanceRecordEntity>>
+
+    @Query("SELECT * FROM attendance_record WHERE date = :date")
+    suspend fun getAttendanceForDate(date: String): List<AttendanceRecordEntity>
+
+    @Query("SELECT * FROM attendance_entry WHERE recordId = :recordId")
+    suspend fun getEntriesForRecord(recordId: Long): List<AttendanceEntryEntity>
+
+    @Query("SELECT attendance_entry.* FROM attendance_entry INNER JOIN attendance_record ON attendance_entry.recordId = attendance_record.id WHERE attendance_entry.studentId = :studentId")
+    fun observeAttendanceEntriesForStudent(studentId: Long): Flow<List<AttendanceEntryEntity>>
+
+    @Insert
+    suspend fun insertAttendanceRecord(record: AttendanceRecordEntity): Long
+
+    @Insert
+    suspend fun insertAttendanceEntries(entries: List<AttendanceEntryEntity>): List<Long>
+
+    @Query("SELECT * FROM student ORDER BY section, rollNumber")
+    fun observeStudents(): Flow<List<StudentEntity>>
+
+    @Query("SELECT * FROM student WHERE id = :id LIMIT 1")
+    suspend fun getStudent(id: Long): StudentEntity?
+
+    @Insert
+    suspend fun insertStudents(students: List<StudentEntity>)
+
+    @Query("SELECT COUNT(*) FROM student")
+    suspend fun countStudents(): Int
+
+    // ---- Notes ----
+    @Query("SELECT * FROM note ORDER BY updatedAt DESC")
+    fun observeNotes(): Flow<List<NoteEntity>>
+
+    @Query("SELECT * FROM note WHERE id = :id LIMIT 1")
+    suspend fun getNote(id: Long): NoteEntity?
+
+    @Insert
+    suspend fun insertNote(note: NoteEntity): Long
+
+    @Update
+    suspend fun updateNote(note: NoteEntity)
+
+    @Query("DELETE FROM note WHERE id = :id")
+    suspend fun deleteNote(id: Long)
+
+    // ---- Tasks ----
+    @Query("SELECT * FROM task ORDER BY completed, dueAt IS NULL, dueAt, createdAt DESC")
+    fun observeTasks(): Flow<List<TaskEntity>>
+
+    @Query("SELECT * FROM task WHERE id = :id LIMIT 1")
+    suspend fun getTask(id: Long): TaskEntity?
+
+    @Insert
+    suspend fun insertTask(task: TaskEntity): Long
+
+    @Update
+    suspend fun updateTask(task: TaskEntity)
+
+    @Query("DELETE FROM task WHERE id = :id")
+    suspend fun deleteTask(id: Long)
+
+    @Query("SELECT COUNT(*) FROM task WHERE completed = 0")
+    suspend fun countOpenTasks(): Int
+
+    @Query("SELECT * FROM task")
+    suspend fun getTasks(): List<TaskEntity>
+
+    @Query("SELECT * FROM note")
+    suspend fun getNotes(): List<NoteEntity>
+
+    @Query("SELECT * FROM student")
+    suspend fun getStudents(): List<StudentEntity>
+
+    // ---- Memory ----
+    @Query("SELECT * FROM memory ORDER BY createdAt DESC")
+    fun observeMemories(): Flow<List<MemoryEntity>>
+
+    @Query("SELECT * FROM memory ORDER BY createdAt DESC")
+    suspend fun getMemories(): List<MemoryEntity>
+
+    @Insert
+    suspend fun insertMemory(memory: MemoryEntity): Long
+
+    @Update
+    suspend fun updateMemory(memory: MemoryEntity)
+
+    @Query("DELETE FROM memory WHERE id = :id")
+    suspend fun deleteMemory(id: Long)
+
+    @Query("DELETE FROM memory")
+    suspend fun clearMemories()
+
+    @Query("DELETE FROM class_slot")
+    suspend fun clearTimetable()
+
+    @Query("DELETE FROM task")
+    suspend fun clearTasks()
+
+    @Query("DELETE FROM note")
+    suspend fun clearNotes()
+
+    @Query("DELETE FROM attendance_record")
+    suspend fun clearAttendance()
+
+    @Query("DELETE FROM attendance_entry")
+    suspend fun clearAttendanceEntries()
+
+    @Query("DELETE FROM student")
+    suspend fun clearStudents()
+}

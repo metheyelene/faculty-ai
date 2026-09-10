@@ -1,0 +1,15 @@
+*.iml
+.gradle/
+build/
+/local.properties
+.idea/
+.DS_Store
+/captures
+.externalNativeBuild
+.cxx
+
+# Local bootstrap Gradle distribution cache (see gradlew)
+.android-gradle-cache/
+
+# Freebuff workspace metadata
+.freebuff/
