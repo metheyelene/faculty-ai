@@ -12,7 +12,8 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  contents: read
+  # Renovate pushes update branches (contents) and opens PRs (pull-requests).
+  contents: write
   pull-requests: write
 
 jobs:
@@ -34,6 +35,8 @@ jobs:
           RENOVATE_TOKEN: ${{ secrets.RENOVATE_PAT || github.token }}
           RENOVATE_CONFIG: |
             {
+              "platform": "github",
+              "repositories": ["metheyelene/faculty-ai"],
               "onboarding": false,
               "configWarningReuseIssue": false,
               "extends": ["config:recommended", ":disableRateLimiting", ":semanticCommitsDisabled"],
@@ -58,8 +61,8 @@ jobs:
               ]
             }
         run: |
+          printf '%s' "$RENOVATE_CONFIG" > /tmp/renovate-config.json
           npx --yes renovate@latest \
-            --platform=local \
             --token="$RENOVATE_TOKEN" \
             --require-config=required \
-            --config-file=<(printf '%s' "$RENOVATE_CONFIG")
+            --config-file=/tmp/renovate-config.json
