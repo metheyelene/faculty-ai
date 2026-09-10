@@ -26,6 +26,14 @@ jobs:
         # actions/checkout@v4.4.0
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
+      - name: Use Node 24
+        # Renovate's latest major requires Node ^24 (RegExp.escape etc.);
+        # the runner's default shell Node lags behind and crashes Renovate.
+        # actions/setup-node@v6.5.0
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: 24
+
       - name: Renovate
         env:
           # A PAT (secret RENOVATE_PAT) is recommended: PRs created with
