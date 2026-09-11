@@ -115,6 +115,8 @@ fun AttendanceClassScreen(
                         MarkChip("A", status = "ABSENT", current = marks[student.id]) { vm.setMark(student.id, "ABSENT") }
                         Spacer(Modifier.width(KineticSpacing.xs))
                         MarkChip("L", status = "LATE", current = marks[student.id]) { vm.setMark(student.id, "LATE") }
+                        Spacer(Modifier.width(KineticSpacing.xs))
+                        MarkChip("E", status = "EXCUSED", current = marks[student.id]) { vm.setMark(student.id, "EXCUSED") }
                     }
                     KineticDivider()
                 }
@@ -123,10 +125,15 @@ fun AttendanceClassScreen(
             Spacer(Modifier.height(KineticSpacing.md))
             val present = marks.values.count { it == "PRESENT" }
             val absent = marks.values.count { it == "ABSENT" }
+            val excused = marks.values.count { it == "EXCUSED" }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 KineticStat(value = present.toString(), label = "PRESENT")
                 Spacer(Modifier.width(KineticSpacing.xl))
                 KineticStat(value = absent.toString(), label = "ABSENT")
+                if (excused > 0) {
+                    Spacer(Modifier.width(KineticSpacing.xl))
+                    KineticStat(value = excused.toString(), label = "EXCUSED")
+                }
                 Spacer(Modifier.weight(1f))
                 KineticButton(
                     text = "SAVE",

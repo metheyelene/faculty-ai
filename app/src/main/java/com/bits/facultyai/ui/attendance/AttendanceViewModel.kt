@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** Status values: PRESENT, ABSENT, LATE. Null = not yet marked. */
+/** Status values: PRESENT, ABSENT, LATE, EXCUSED. Null = not yet marked. */
 typealias Mark = String?
 
 class AttendanceViewModel(application: Application) : AndroidViewModel(application) {
@@ -68,6 +68,7 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
                     presentCount = marks.value.values.count { it == "PRESENT" },
                     absentCount = marks.value.values.count { it == "ABSENT" },
                     lateCount = marks.value.values.count { it == "LATE" },
+                    excusedCount = marks.value.values.count { it == "EXCUSED" },
                 )
             )
             dao.insertAttendanceEntries(

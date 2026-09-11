@@ -25,7 +25,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         EventExpenseEntity::class,
         EventCollectionEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = false,
 )
 abstract class FacultyDatabase : RoomDatabase() {
@@ -52,6 +52,18 @@ abstract class FacultyDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE `task` ADD COLUMN `category` TEXT NOT NULL DEFAULT 'GENERAL'")
                 db.execSQL("ALTER TABLE `task` ADD COLUMN `recurrence` TEXT NOT NULL DEFAULT 'NONE'")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_academic_event_date` ON `academic_event` (`date`)")
+            }
+        }
+
+        /** v7 -> v8: monthly attendance gains an EXCUSED (E) count on sessions. Guarded, additive. */
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(
+                    db,
+                    "attendance_record",
+                    "excusedCount",
+                    "ALTER TABLE `attendance_record` ADD COLUMN `excusedCount` INTEGER NOT NULL DEFAULT 0",
+                )
             }
         }
 
@@ -196,7 +208,7 @@ abstract class FacultyDatabase : RoomDatabase() {
                     FacultyDatabase::class.java,
                     "faculty_ai.db",
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                     .build()
                     .also { instance = it }
             }

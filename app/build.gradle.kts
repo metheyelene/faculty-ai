@@ -23,8 +23,8 @@ android {
         applicationId = "com.bits.facultyai"
         minSdk = 26
         targetSdk = 35
-        versionCode = 10
-        versionName = "1.4.0"
+        versionCode = 13
+        versionName = "1.5.1"
         vectorDrawables.useSupportLibrary = true
     }
 

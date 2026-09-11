@@ -52,6 +52,9 @@ import com.bits.facultyai.ui.timetable.TimetableScreen
 import com.bits.facultyai.ui.timetable.TimetableViewModel
 import com.bits.facultyai.ui.attendance.AttendanceScreen
 import com.bits.facultyai.ui.attendance.AttendanceClassScreen
+import com.bits.facultyai.ui.attendance.monthly.MonthlyAttendanceScreen
+import com.bits.facultyai.ui.attendance.monthly.MonthlyImportScreen
+import com.bits.facultyai.ui.attendance.monthly.StudentMonthlyScreen
 import com.bits.facultyai.ui.students.StudentsScreen
 import com.bits.facultyai.ui.students.StudentDetailScreen
 import com.bits.facultyai.ui.notes.NotesScreen
@@ -75,6 +78,9 @@ private object Routes {
     const val TIMETABLE = "timetable"
     const val ATTENDANCE = "attendance"
     const val ATTENDANCE_CLASS = "attendance_class/{slotId}"
+    const val MONTHLY_ATTENDANCE = "monthly_attendance"
+    const val MONTHLY_IMPORT = "monthly_import/{payload}"
+    const val STUDENT_MONTHLY = "student_monthly/{studentId}/{monthIso}"
     const val STUDENTS = "students"
     const val STUDENT_DETAIL = "student_detail/{studentId}"
     const val NOTES = "notes"
@@ -92,6 +98,9 @@ private object Routes {
 }
 
 fun attendanceRoute(slotId: Long) = "attendance_class/$slotId"
+fun monthlyAttendanceRoute() = Routes.MONTHLY_ATTENDANCE
+fun monthlyImportRoute(payload: String) = "monthly_import/" + android.net.Uri.encode(payload)
+fun studentMonthlyRoute(studentId: Long, monthIso: String) = "student_monthly/$studentId/" + android.net.Uri.encode(monthIso)
 fun noteEditorRoute(noteId: Long) = "note_editor/$noteId"
 fun studentDetailRoute(studentId: Long) = "student_detail/$studentId"
 fun eventDetailRoute(eventId: Long) = "event_detail/$eventId"
@@ -233,10 +242,31 @@ fun FacultyAINavHost(
                 val slotId = entry.arguments?.getString("slotId")?.toLongOrNull() ?: 0L
                 AttendanceClassScreen(slotId = slotId, onDone = { navController.popBackStack() })
             }
+            composable(Routes.MONTHLY_ATTENDANCE) {
+                MonthlyAttendanceScreen(
+                    onOpenStudent = { studentId, monthIso -> navController.navigate(studentMonthlyRoute(studentId, monthIso)) },
+                    onImport = { payload -> navController.navigate(monthlyImportRoute(payload)) },
+                )
+            }
+            composable(Routes.MONTHLY_IMPORT) { entry ->
+                val payload = entry.arguments?.getString("payload").orEmpty()
+                MonthlyImportScreen(payload = payload, onDone = { navController.popBackStack() })
+            }
+            composable(Routes.STUDENT_MONTHLY) { entry ->
+                val studentId = entry.arguments?.getString("studentId")?.toLongOrNull() ?: 0L
+                val monthIso = entry.arguments?.getString("monthIso").orEmpty()
+                StudentMonthlyScreen(studentId = studentId, monthIso = monthIso)
+            }
             composable(Routes.STUDENTS) { StudentsScreen(onNavigate = { navController.navigate(it) }) }
             composable(Routes.STUDENT_DETAIL) { entry ->
                 val id = entry.arguments?.getString("studentId")?.toLongOrNull() ?: 0L
-                StudentDetailScreen(studentId = id, onBack = { navController.popBackStack() })
+                StudentDetailScreen(
+                    studentId = id,
+                    onBack = { navController.popBackStack() },
+                    onNavigateMonthly = { sid ->
+                        navController.navigate(studentMonthlyRoute(sid, java.time.YearMonth.now().toString()))
+                    },
+                )
             }
             composable(Routes.NOTES) {
                 NotesScreen(

@@ -16,6 +16,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bits.facultyai.domain.TimeUtils
 import com.bits.facultyai.ui.navigation.attendanceRoute
+import com.bits.facultyai.ui.navigation.monthlyAttendanceRoute
 import com.bits.facultyai.ui.components.GlassCard
 import com.bits.facultyai.ui.components.GlassStat
 import com.bits.facultyai.ui.components.GlassStrength
@@ -70,6 +71,22 @@ fun AttendanceScreen(
             )
         }
         Spacer(Modifier.height(KineticSpacing.xl))
+
+        // ---- Monthly attendance ----
+        GlassCard(strength = GlassStrength.THIN, onClick = { onNavigate(monthlyAttendanceRoute()) }) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(text = "MONTHLY ATTENDANCE", style = KineticType.bodyMedium, color = k.foreground)
+                    Text(
+                        text = "CLASS SUMMARY \u00B7 EXCEL IMPORT",
+                        style = KineticType.label,
+                        color = k.mutedForeground,
+                    )
+                }
+                Text(text = "\u2192", style = KineticType.headingSm, color = k.accent)
+            }
+        }
+        Spacer(Modifier.height(KineticSpacing.lg))
 
         KineticSectionHeader(title = "TODAY'S CLASSES")
         val today = java.time.LocalDate.now().dayOfWeek.value

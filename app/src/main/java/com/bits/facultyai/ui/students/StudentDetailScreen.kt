@@ -17,6 +17,7 @@ import com.bits.facultyai.data.local.StudentEntity
 import com.bits.facultyai.ui.components.GlassTopBar
 import com.bits.facultyai.ui.components.KineticDisplayText
 import com.bits.facultyai.ui.components.KineticLoadingState
+import com.bits.facultyai.ui.components.KineticGhostButton
 import com.bits.facultyai.ui.components.KineticSectionHeader
 import com.bits.facultyai.ui.components.KineticStat
 import com.bits.facultyai.ui.theme.KineticSpacing
@@ -61,6 +62,7 @@ class StudentDetailViewModel(savedStateHandle: SavedStateHandle, application: Ap
 fun StudentDetailScreen(
     studentId: Long,
     onBack: () -> Unit,
+    onNavigateMonthly: (Long) -> Unit = {},
     vm: StudentDetailViewModel = viewModel(
         factory = viewModelFactory {
             initializer {
@@ -104,6 +106,11 @@ fun StudentDetailScreen(
             KineticStat(value = "$pct%", label = "ATTENDED")
             KineticStat(value = "$total", label = "SESSIONS")
         }
+        Spacer(Modifier.height(KineticSpacing.sm))
+        KineticGhostButton(
+            text = "VIEW MONTHLY ATTENDANCE",
+            onClick = { onNavigateMonthly(studentId) },
+        )
 
         KineticSectionHeader(title = "INFO")
         InfoRow("SECTION", student?.section ?: "—")

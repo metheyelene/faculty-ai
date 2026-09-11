@@ -97,6 +97,45 @@ interface FacultyDao {
 
     @Insert
     suspend fun insertAttendanceEntries(entries: List<AttendanceEntryEntity>): List<Long>
+
+    // ---- Monthly attendance ----
+
+    /** All sessions in an ISO date range (e.g. one month) — the raw material for monthly summaries. */
+    @Query("SELECT * FROM attendance_record WHERE date BETWEEN :startIso AND :endIso ORDER BY date, id")
+    fun observeRecordsBetween(startIso: String, endIso: String): Flow<List<AttendanceRecordEntity>>
+
+    /** One student's entries within a month, oldest first — drives the day-by-day detail calendar. */
+    @Query(
+        "SELECT attendance_entry.*, attendance_record.date AS recordDate, attendance_record.subject AS recordSubject " +
+            "FROM attendance_entry INNER JOIN attendance_record ON attendance_entry.recordId = attendance_record.id " +
+            "WHERE attendance_entry.studentId = :studentId AND attendance_record.date BETWEEN :startIso AND :endIso " +
+            "ORDER BY attendance_record.date, attendance_record.id",
+    )
+    fun observeStudentEntriesBetween(studentId: Long, startIso: String, endIso: String): Flow<List<StudentMonthEntry>>
+
+    @Query("UPDATE attendance_record SET presentCount = :present, absentCount = :absent, lateCount = :late, excusedCount = :excused WHERE id = :id")
+    suspend fun updateAttendanceRecordCounts(id: Long, present: Int, absent: Int, late: Int, excused: Int)
+
+    @Query("UPDATE attendance_entry SET status = :status WHERE recordId = :recordId AND studentId = :studentId")
+    suspend fun updateAttendanceEntryStatus(recordId: Long, studentId: Long, status: String)
+
+    @Query("DELETE FROM attendance_entry WHERE recordId = :recordId AND studentId = :studentId")
+    suspend fun deleteAttendanceEntry(recordId: Long, studentId: Long)
+
+    /** Subjects actually taught (sessions recorded) for a class — the truthful subject filter source. */
+    @Query("SELECT DISTINCT subject FROM attendance_record WHERE year = :year AND section = :section ORDER BY subject")
+    fun observeRecordedSubjects(year: Int, section: String): Flow<List<String>>
+
+    @Query("SELECT DISTINCT subject FROM attendance_record WHERE year = :year AND section = :section ORDER BY subject")
+    suspend fun getRecordedSubjectsFor(year: Int, section: String): List<String>
+
+    /** All entries in a date range joined with their records — import conflict detection. */
+    @Query(
+        "SELECT attendance_entry.*, attendance_record.date AS recordDate, attendance_record.subject AS recordSubject " +
+            "FROM attendance_entry INNER JOIN attendance_record ON attendance_entry.recordId = attendance_record.id " +
+            "WHERE attendance_record.date BETWEEN :startIso AND :endIso",
+    )
+    suspend fun getStudentMonthEntriesBetween(startIso: String, endIso: String): List<StudentMonthEntry>
     @Query("SELECT * FROM student ORDER BY year, section, rollNumber")
     fun observeStudents(): Flow<List<StudentEntity>>
 
@@ -112,6 +151,9 @@ interface FacultyDao {
 
     @Query("SELECT * FROM student WHERE id = :id LIMIT 1")
     suspend fun getStudent(id: Long): StudentEntity?
+
+    @Query("SELECT * FROM student WHERE id = :id LIMIT 1")
+    fun observeStudent(id: Long): Flow<StudentEntity?>
 
     @Insert
     suspend fun insertStudents(students: List<StudentEntity>): List<Long>

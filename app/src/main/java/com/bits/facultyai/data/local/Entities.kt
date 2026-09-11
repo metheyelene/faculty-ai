@@ -95,6 +95,7 @@ data class AttendanceRecordEntity(
     val presentCount: Int,
     val absentCount: Int,
     val lateCount: Int,
+    val excusedCount: Int = 0, // added in v8 for monthly attendance (E status)
 )
 
 /**
@@ -108,7 +109,17 @@ data class AttendanceEntryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val recordId: Long,
     val studentId: Long,
-    val status: String, // PRESENT | ABSENT | LATE
+    val status: String, // PRESENT | ABSENT | LATE | EXCUSED
+)
+
+/** Flat entry + its session's date/subject — the monthly day-by-day detail rows. Room projection POJO. */
+data class StudentMonthEntry(
+    val id: Long,
+    val recordId: Long,
+    val studentId: Long,
+    val status: String,
+    val recordDate: String,
+    val recordSubject: String,
 )
 
 /**
