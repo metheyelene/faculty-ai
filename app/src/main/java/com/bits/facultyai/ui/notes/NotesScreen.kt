@@ -23,7 +23,7 @@ import com.bits.facultyai.ui.navigation.noteEditorRoute
 import com.bits.facultyai.ui.theme.KineticBorder
 import com.bits.facultyai.ui.components.GlassChip
 import com.bits.facultyai.ui.components.GlassEmptyState
-import com.bits.facultyai.ui.components.KineticDisplayText
+import com.bits.facultyai.ui.components.GlassTopBar
 import com.bits.facultyai.ui.components.KineticDivider
 import com.bits.facultyai.ui.components.KineticEmptyState
 import com.bits.facultyai.ui.components.KineticTextField
@@ -36,6 +36,7 @@ private val FOLDERS = listOf("LECTURES", "MEETINGS", "RESEARCH", "LESSON PLANS",
 @Composable
 fun NotesScreen(
     onNavigate: (String) -> Unit,
+    onBack: () -> Unit = {},
     vm: NotesViewModel = viewModel(),
 ) {
     val k = LocalKineticColors.current
@@ -48,10 +49,10 @@ fun NotesScreen(
             .fillMaxSize()
             .background(k.background)
             .verticalScroll(rememberScrollState())
+            .navigationBarsPadding()
             .padding(horizontal = KineticSpacing.lg),
     ) {
-        Spacer(Modifier.height(KineticSpacing.xl))
-        KineticDisplayText(text = "MY NOTES", style = KineticType.display.copy(fontSize = 44.sp))
+        GlassTopBar(title = "MY NOTES", onBack = onBack)
         Spacer(Modifier.height(KineticSpacing.md))
 
         KineticTextField(value = search, onValueChange = vm::setSearch, hint = "SEARCH MY NOTES...")

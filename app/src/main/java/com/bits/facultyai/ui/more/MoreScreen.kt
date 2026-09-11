@@ -15,6 +15,7 @@ import androidx.lifecycle.ViewModel
 import com.bits.facultyai.ui.components.KineticDisplayText
 import com.bits.facultyai.ui.components.KineticDivider
 import com.bits.facultyai.ui.components.KineticSectionHeader
+import com.bits.facultyai.ui.navigation.KineticBottomNavigation
 import com.bits.facultyai.ui.theme.KineticSpacing
 import com.bits.facultyai.ui.theme.KineticType
 import com.bits.facultyai.ui.theme.LocalKineticColors
@@ -47,7 +48,8 @@ fun MoreScreen(onNavigate: (String) -> Unit) {
 
         KineticSectionHeader(title = "SYSTEM")
         MoreRow("SETTINGS", "Theme, privacy, data", { onNavigate("settings") })
-        Spacer(Modifier.height(KineticSpacing.xl))
+        // Clears the floating glass dock + system navigation area.
+        Spacer(Modifier.height(KineticBottomNavigation.bottomClearance()))
     }
 }
 

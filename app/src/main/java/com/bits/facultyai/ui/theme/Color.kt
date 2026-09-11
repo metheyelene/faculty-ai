@@ -44,6 +44,12 @@ data class KineticColors(
     val glassThick: Color = glassSurface.copy(alpha = 0.96f),
     /** Soft top-edge highlight that gives glass its lit edge. */
     val glassHighlight: Color = Color.White.copy(alpha = 0.16f),
+    /**
+     * Tint applied over real backdrop blur (RenderEffect via Haze) on floating
+     * surfaces. Translucent enough to let the blurred content read through —
+     * only used where hardware blur is actually active.
+     */
+    val glassBlurTint: Color = glassSurface.copy(alpha = 0.62f),
 )
 
 fun lightKineticColors() = KineticColors(
@@ -64,6 +70,7 @@ fun lightKineticColors() = KineticColors(
     glassRegular = PaperWhite.copy(alpha = 0.88f),
     glassThick = PaperWhite.copy(alpha = 0.965f),
     glassHighlight = Color.White.copy(alpha = 0.75f),
+    glassBlurTint = PaperWhite.copy(alpha = 0.62f),
 )
 
 fun darkKineticColors() = KineticColors(
@@ -84,6 +91,7 @@ fun darkKineticColors() = KineticColors(
     glassRegular = Color(0xFF1B1B1F).copy(alpha = 0.87f),
     glassThick = Color(0xFF1A1A1E).copy(alpha = 0.96f),
     glassHighlight = Color.White.copy(alpha = 0.10f),
+    glassBlurTint = Color(0xFF18181B).copy(alpha = 0.62f),
 )
 
 fun kineticMaterialScheme(c: KineticColors): ColorScheme =

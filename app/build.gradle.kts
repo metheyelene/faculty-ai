@@ -93,6 +93,9 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
+    // Liquid Glass: real backdrop blur via RenderEffect (API 31+),
+    // graceful fallback below. 1.x line matches our Kotlin 2.0 toolchain.
+    implementation(libs.haze)
 
     testImplementation(libs.junit)
 

@@ -22,6 +22,7 @@ import com.bits.facultyai.domain.TimeUtils
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import com.bits.facultyai.ui.components.KineticBlock
+import com.bits.facultyai.ui.navigation.KineticBottomNavigation
 import com.bits.facultyai.ui.theme.KineticBorder
 import com.bits.facultyai.ui.components.GlassCard
 import com.bits.facultyai.ui.components.GlassStat
@@ -291,7 +292,8 @@ fun HomeScreen(
             Text(text = "YOUR ASSISTANT", style = KineticType.labelBold, color = k.accentForeground)
             Text(text = "\"What should we work on?\"", style = KineticType.headingSm, color = k.accentForeground)
         }
-        Spacer(Modifier.height(KineticSpacing.xl))
+        // Clears the floating glass dock + system navigation area.
+        Spacer(Modifier.height(KineticBottomNavigation.bottomClearance()))
     }
 }
 

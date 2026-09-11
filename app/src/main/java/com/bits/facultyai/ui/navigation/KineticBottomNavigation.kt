@@ -27,6 +27,8 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,37 +36,64 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.bits.facultyai.ui.theme.KineticBorder
 import com.bits.facultyai.ui.theme.KineticMotion
-import com.bits.facultyai.ui.theme.KineticShape
 import com.bits.facultyai.ui.theme.KineticSpacing
 import com.bits.facultyai.ui.theme.KineticType
 import com.bits.facultyai.ui.theme.LocalIsDark
 import com.bits.facultyai.ui.theme.LocalKineticColors
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeChild
 
 /** Rounded dock shape — shared with the glass system's moderate radius. */
 private val DockShape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
 
 /**
- * Liquid-glass dock surface: translucent fill that floats over app content,
- * hairline border and a soft top-edge highlight. Slightly more opaque than
- * REGULAR glass because the dock overlays arbitrary scrolling content.
+ * Liquid-glass dock surface with a REAL backdrop blur.
+ *
+ * When [hazeState] is provided, the dock is a Haze child: the app content
+ * behind it (the NavHost, marked as the Haze source) is diffused through a
+ * RenderEffect backdrop blur on Android 12+/13+, then covered by a
+ * translucent glass tint and a lit top edge. On devices without hardware
+ * blur support Haze renders its scrim fallback ([fallbackTint]), so the dock
+ * stays fully readable everywhere — one visual system, two capability tiers.
  */
-private fun Modifier.glassDockSurface(): Modifier = composed {
+private fun Modifier.glassDockSurface(hazeState: HazeState?): Modifier = composed {
     val k = LocalKineticColors.current
-    this
+    val shaped = this
         .clip(DockShape)
         .border(1.dp, k.glassBorder, DockShape)
-        .background(k.glassThick, DockShape)
-        .drawBehind {
-            drawRect(
-                Brush.verticalGradient(
-                    colors = listOf(k.glassHighlight, Color.Transparent),
-                    startY = 0f,
-                    endY = size.height * 0.4f,
+    if (hazeState != null) {
+        shaped
+            .hazeChild(hazeState) {
+                blurRadius = 22.dp
+                noiseFactor = 0.08f
+                tints = listOf(HazeTint(k.glassBlurTint))
+                backgroundColor = k.background
+                fallbackTint = HazeTint(k.glassThick)
+            }
+            .drawBehind {
+                drawRect(
+                    Brush.verticalGradient(
+                        colors = listOf(k.glassHighlight, Color.Transparent),
+                        startY = 0f,
+                        endY = size.height * 0.4f,
+                    )
                 )
-            )
-        }
+            }
+    } else {
+        shaped
+            .background(k.glassThick, DockShape)
+            .drawBehind {
+                drawRect(
+                    Brush.verticalGradient(
+                        colors = listOf(k.glassHighlight, Color.Transparent),
+                        startY = 0f,
+                        endY = size.height * 0.4f,
+                    )
+                )
+            }
+    }
 }
 
 data class NavItem(val route: String, val label: String)
@@ -81,34 +110,54 @@ val bottomNavItems = listOf(
  * Floating bottom navigation.
  *
  * Inset rules (single source of truth — no double padding anywhere else):
- *  - The bar is rendered as an overlay inside the root Column and sits above
- *    the system navigation area using `windowInsetsPadding(WindowInsets.navigationBars)`
- *    — adapts to gesture nav, 3-button nav and per-device insets automatically.
- *    No hardcoded bottom padding.
+ *  - The bar is rendered as an OVERLAY on top of the NavHost (see
+ *    FacultyAINavHost) so screens genuinely scroll underneath it — the real
+ *    backdrop blur keeps passing content readable.
+ *  - It sits above the system navigation area using
+ *    `windowInsetsPadding(WindowInsets.navigationBars)` — adapts to gesture
+ *    nav, 3-button nav and per-device insets. No hardcoded bottom padding.
  *  - Horizontally centered with side margins; never stretches edge-to-edge.
- *  - Content screens pad their scroll ends by [KineticBottomNavigation.contentClearance]
- *    so the last list item can scroll fully above the bar.
+ *  - Content screens add [bottomClearance] after their last item so nothing
+ *    rests beneath the dock. The dock hides itself while the keyboard is
+ *    open (gated in FacultyAINavHost) so it never covers the composer.
  */
 object KineticBottomNavigation {
-    /** Height of the pill itself (indicator + label + vertical padding). */
+    /** Height of the dock itself (indicator + label + vertical padding). */
     val barHeight = 60.dp
 
     /**
-     * Bottom clearance screens should add after their last item: the pill,
-     * its surrounding padding and a little breathing room.
+     * The dock's footprint above the system navigation area: bar + its own
+     * vertical padding + breathing room. Does NOT include the nav-bar inset.
      */
-    val contentClearance = barHeight + 48.dp
+    fun dockOverlayHeight(): Dp = barHeight + KineticSpacing.sm * 2 + 12.dp
+
+    /**
+     * Bottom clearance screens add after their last content item so it can
+     * scroll fully clear of the floating dock (includes the nav-bar inset,
+     * which the dock itself consumes).
+     */
+    @Composable
+    fun bottomClearance(): Dp {
+        val density = LocalDensity.current
+        return dockOverlayHeight() + with(density) {
+            WindowInsets.navigationBars.getBottom(density).toDp()
+        }
+    }
 }
 
 @Composable
-fun KineticBottomNavigation(navController: NavHostController) {
+fun KineticBottomNavigation(
+    navController: NavHostController,
+    hazeState: HazeState? = null,
+    modifier: Modifier = Modifier,
+) {
     val k = LocalKineticColors.current
     val isDark = LocalIsDark.current
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             // The only bottom-inset consumer in the app: lifts the whole
             // floating bar clear of gesture/3-button navigation areas.
@@ -119,7 +168,7 @@ fun KineticBottomNavigation(navController: NavHostController) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(KineticBottomNavigation.barHeight)
-                .glassDockSurface()
+                .glassDockSurface(hazeState)
                 .padding(horizontal = KineticSpacing.xs, vertical = KineticSpacing.sm),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {

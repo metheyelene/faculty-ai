@@ -38,6 +38,14 @@ class AssistantViewModel(application: Application) : AndroidViewModel(applicatio
     val memories = dao.observeMemories()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // Real faculty context drives the suggestion chips on the screen.
+    val timetable = dao.observeTimetable()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val tasks = dao.observeTasks()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val notes = dao.observeNotes()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val chat = MutableStateFlow<List<ChatMessage>>(
         listOf(
             ChatMessage(

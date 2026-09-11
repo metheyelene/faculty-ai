@@ -23,9 +23,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bits.facultyai.data.local.TaskEntity
 import com.bits.facultyai.domain.TimeUtils
+import com.bits.facultyai.ui.components.GlassTopBar
 import com.bits.facultyai.ui.components.KineticBadge
 import com.bits.facultyai.ui.components.KineticButton
-import com.bits.facultyai.ui.components.KineticDisplayText
 import com.bits.facultyai.ui.components.KineticDivider
 import com.bits.facultyai.ui.components.KineticEmptyState
 import com.bits.facultyai.ui.components.KineticSectionHeader
@@ -36,7 +36,7 @@ import com.bits.facultyai.ui.theme.LocalKineticColors
 import java.time.ZoneId
 
 @Composable
-fun TasksScreen(vm: TasksViewModel = viewModel()) {
+fun TasksScreen(onBack: () -> Unit = {}, vm: TasksViewModel = viewModel()) {
     val k = LocalKineticColors.current
     val tasks by vm.tasks.collectAsStateWithLifecycle()
     var quickAdd by remember { mutableStateOf("") }
@@ -47,10 +47,10 @@ fun TasksScreen(vm: TasksViewModel = viewModel()) {
             .fillMaxSize()
             .background(k.background)
             .verticalScroll(rememberScrollState())
+            .navigationBarsPadding()
             .padding(horizontal = KineticSpacing.lg),
     ) {
-        Spacer(Modifier.height(KineticSpacing.xl))
-        KineticDisplayText(text = "MY TASKS", style = KineticType.display.copy(fontSize = 44.sp))
+        GlassTopBar(title = "MY TASKS", onBack = onBack)
         Spacer(Modifier.height(KineticSpacing.md))
 
         // Natural-language quick add

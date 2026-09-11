@@ -21,6 +21,7 @@ import androidx.lifecycle.viewModelScope
 import com.bits.facultyai.data.local.FacultyDatabase
 import com.bits.facultyai.data.prefs.AppSettings
 import com.bits.facultyai.data.prefs.SettingsRepository
+import com.bits.facultyai.ui.components.GlassTopBar
 import com.bits.facultyai.ui.components.KineticButton
 import com.bits.facultyai.ui.components.KineticDisplayText
 import com.bits.facultyai.ui.components.KineticGhostButton
@@ -70,13 +71,11 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel()) {
             .fillMaxSize()
             .background(k.background)
             .verticalScroll(rememberScrollState())
+            .navigationBarsPadding()
             .padding(horizontal = KineticSpacing.lg),
     ) {
         Spacer(Modifier.height(KineticSpacing.xl))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            KineticGhostButton(text = "← BACK", onClick = onBack)
-        }
-        KineticDisplayText(text = "SETTINGS", style = KineticType.display.copy(fontSize = 40.sp))
+        GlassTopBar(title = "SETTINGS", onBack = onBack)
         Spacer(Modifier.height(KineticSpacing.xl))
 
         KineticSectionHeader(title = "APPEARANCE")

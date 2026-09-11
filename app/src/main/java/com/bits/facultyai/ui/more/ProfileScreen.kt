@@ -18,6 +18,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewModelScope
 import com.bits.facultyai.data.local.FacultyDatabase
 import com.bits.facultyai.data.local.FacultyProfileEntity
+import com.bits.facultyai.ui.components.GlassTopBar
 import com.bits.facultyai.ui.components.KineticButton
 import com.bits.facultyai.ui.components.KineticDisplayText
 import com.bits.facultyai.ui.components.KineticDivider
@@ -115,22 +116,27 @@ fun ProfileScreen(onBack: () -> Unit, vm: ProfileViewModel = viewModel()) {
             .fillMaxSize()
             .background(k.background)
             .verticalScroll(rememberScrollState())
+            .navigationBarsPadding()
             .padding(horizontal = KineticSpacing.lg),
     ) {
         Spacer(Modifier.height(KineticSpacing.xl))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            KineticGhostButton(text = "← BACK", onClick = onBack)
-            Spacer(Modifier.weight(1f))
-            Text(
-                text = if (editing) "CANCEL" else "EDIT",
-                style = KineticType.labelBold,
-                color = k.accent,
-                modifier = Modifier.clickable {
-                    if (editing) vm.consumeSaved()
-                    editing = !editing
-                },
-            )
-        }
+        GlassTopBar(
+            title = "PROFILE",
+            onBack = onBack,
+            trailing = {
+                Text(
+                    text = if (editing) "CANCEL" else "EDIT",
+                    style = KineticType.labelBold,
+                    color = k.accent,
+                    modifier = Modifier
+                        .clickable {
+                            if (editing) vm.consumeSaved()
+                            editing = !editing
+                        }
+                        .padding(horizontal = KineticSpacing.md, vertical = KineticSpacing.sm),
+                )
+            },
+        )
         Spacer(Modifier.height(KineticSpacing.lg))
 
         // Identity block — initial letter avatar (photo hook ready: replace Box with AsyncImage)

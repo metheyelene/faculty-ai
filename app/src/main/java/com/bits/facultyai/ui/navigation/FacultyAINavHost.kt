@@ -1,20 +1,28 @@
 package com.bits.facultyai.ui.navigation
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.haze
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,9 +41,12 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.bits.facultyai.data.prefs.AppSettings
 import com.bits.facultyai.ui.calendar.CalendarScreen
+import com.bits.facultyai.ui.components.rememberBlurSupported
 import com.bits.facultyai.ui.theme.KineticMotion
 import com.bits.facultyai.ui.theme.KineticType
 import com.bits.facultyai.ui.theme.LocalKineticColors
+import com.bits.facultyai.ui.theme.rememberReducedMotion
+import dev.chrisbanes.haze.HazeState
 import com.bits.facultyai.ui.home.HomeScreen
 import com.bits.facultyai.ui.timetable.TimetableScreen
 import com.bits.facultyai.ui.timetable.TimetableViewModel
@@ -78,6 +89,7 @@ fun studentDetailRoute(studentId: Long) = "student_detail/$studentId"
 
 private val topLevelRoutes = setOf(Routes.HOME, Routes.TIMETABLE, Routes.ATTENDANCE, Routes.ASSISTANT, Routes.MORE)
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun FacultyAINavHost(
     settings: AppSettings?,
@@ -137,6 +149,32 @@ fun FacultyAINavHost(
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
     val showBottomBar = currentRoute in topLevelRoutes
+    // The dock steps aside while the keyboard is up — it must never cover
+    // the assistant composer or any active input.
+    val imeVisible = WindowInsets.isImeVisible
+    val showDock = showBottomBar && !imeVisible
+    val reducedMotion = rememberReducedMotion()
+    // Dock enters by rising + fading; exits the same way. Reduced motion:
+    // no transition, instant presence.
+    val dockProgress by animateFloatAsState(
+        targetValue = if (showDock) 1f else 0f,
+        animationSpec = if (reducedMotion) snap() else tween(KineticMotion.MEDIUM_MS, easing = KineticMotion.easeOut),
+        label = "dockProgress",
+    )
+
+    // Liquid Glass: the NavHost is the blur SOURCE; the floating dock is the
+    // hazeChild that blurs this content via RenderEffect (Android 12+).
+    // PERFORMANCE GATE: the source layer is only attached when something can
+    // actually consume the blur — a top-level screen is visible AND the dock
+    // is shown (keyboard closed, motion allowed, API 31+). On secondary
+    // screens, dialogs, onboarding and pre-Android-12 devices the NavHost
+    // renders with zero blur overhead.
+    val hazeState = remember { HazeState() }
+    val blurCapable = rememberBlurSupported()
+    val hazeActive = showDock && blurCapable
+    var lastHazeActive by remember { mutableStateOf(hazeActive) }
+    LaunchedEffect(hazeActive) { lastHazeActive = hazeActive }
+    val effectiveHaze = hazeActive || lastHazeActive
 
     // Notification deep links: navigate once when a link arrives.
     LaunchedEffect(deepLinkRoute) {
@@ -148,20 +186,25 @@ fun FacultyAINavHost(
         if (deepLinkRoute != null) onDeepLinkHandled()
     }
 
-    Column(
+    // Root layout: a Box so the dock can genuinely FLOAT over the NavHost
+    // (screens scroll underneath it — required for the backdrop blur to have
+    // moving content to diffuse).
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(k.background)
             // Global safe areas, applied ONCE at the root: every screen (with
             // or without its own top bar) clears the status bar; the whole
-            // column lifts above the keyboard instead of colliding with it.
+            // box lifts above the keyboard instead of colliding with it.
             .statusBarsPadding()
             .imePadding()
     ) {
         NavHost(
             navController = navController,
             startDestination = if (!settings.onboardingComplete) Routes.ONBOARDING else Routes.HOME,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .matchParentSize()
+                .then(if (hazeActive) Modifier.haze(hazeState) else Modifier),
             // Spatial continuity: forward slides left, back slides right,
             // always with a soft cross-fade. Fast, Apple-like ease-out.
             enterTransition = {
@@ -202,17 +245,22 @@ fun FacultyAINavHost(
                 val id = entry.arguments?.getString("studentId")?.toLongOrNull() ?: 0L
                 StudentDetailScreen(studentId = id, onBack = { navController.popBackStack() })
             }
-            composable(Routes.NOTES) { NotesScreen(onNavigate = { navController.navigate(it) }) }
+            composable(Routes.NOTES) {
+                NotesScreen(
+                    onNavigate = { navController.navigate(it) },
+                    onBack = { navController.popBackStack() },
+                )
+            }
             composable(Routes.NOTE_EDITOR) { entry ->
                 val id = entry.arguments?.getString("noteId")?.toLongOrNull() ?: -1L
                 NoteEditorScreen(noteId = id, onBack = { navController.popBackStack() })
             }
-            composable(Routes.TASKS) { TasksScreen() }
+            composable(Routes.TASKS) { TasksScreen(onBack = { navController.popBackStack() }) }
             composable(Routes.CALENDAR) {
                 CalendarScreen(onBack = { navController.popBackStack() })
             }
             composable(Routes.ASSISTANT) { AssistantScreen() }
-            composable(Routes.MEMORY) { MemoryScreen() }
+            composable(Routes.MEMORY) { MemoryScreen(onBack = { navController.popBackStack() }) }
             composable(Routes.MORE) { MoreScreen(onNavigate = { navController.navigate(it) }) }
             composable(Routes.PROFILE) { ProfileScreen(onBack = { navController.popBackStack() }) }
             composable(Routes.SETTINGS) {
@@ -220,12 +268,23 @@ fun FacultyAINavHost(
             }
         }
 
-        // The floating bar is the ONLY bottom-inset consumer in the app. It
-        // overlays the NavHost, so screens scroll under it — the bar's own
-        // translucent surface keeps content readable, and every list adds
-        // KineticBottomNavigation.contentClearance after its last item.
-        if (showBottomBar) {
-            KineticBottomNavigation(navController = navController)
+        // The floating dock is the ONLY bottom-inset consumer in the app. It
+        // overlays the NavHost, so screens genuinely scroll under it and the
+        // RenderEffect backdrop blur has content to diffuse. Every top-level
+        // screen ends with KineticBottomNavigation.bottomClearance().
+        if (dockProgress > 0.01f) {
+            KineticBottomNavigation(
+                navController = navController,
+                // Only hand the blur state to blur-capable devices; everyone
+                // else gets the classic translucent glass fallback surface.
+                hazeState = if (blurCapable) hazeState else null,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .graphicsLayer {
+                        alpha = dockProgress
+                        translationY = (1f - dockProgress) * 40f
+                    },
+            )
         }
     }
 }

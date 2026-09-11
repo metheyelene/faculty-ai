@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.sp
 import com.bits.facultyai.data.local.StudentEntity
+import com.bits.facultyai.ui.components.GlassTopBar
 import com.bits.facultyai.ui.components.KineticDisplayText
 import com.bits.facultyai.ui.components.KineticLoadingState
 import com.bits.facultyai.ui.components.KineticSectionHeader
@@ -71,21 +72,18 @@ fun StudentDetailScreen(
             .fillMaxSize()
             .background(k.background)
             .verticalScroll(rememberScrollState())
+            .navigationBarsPadding()
             .padding(horizontal = KineticSpacing.lg),
     ) {
         Spacer(Modifier.height(KineticSpacing.xl))
         if (!loaded) {
+            GlassTopBar(title = "STUDENT", onBack = onBack)
             KineticLoadingState(label = "LOADING STUDENT")
             Spacer(Modifier.height(KineticSpacing.xl))
             return@Column
         }
-        KineticDisplayText(text = student?.name ?: "STUDENT", style = KineticType.display.copy(fontSize = 44.sp))
-        Text(
-            text = (student?.rollNumber ?: "") + " · " + (student?.section ?: "") + " · " + (student?.degree ?: ""),
-            style = KineticType.labelBold,
-            color = k.accent,
-        )
-        Spacer(Modifier.height(KineticSpacing.xl))
+        GlassTopBar(title = student?.name ?: "STUDENT", onBack = onBack)
+        Spacer(Modifier.height(KineticSpacing.lg))
 
         KineticSectionHeader(title = "ATTENDANCE")
         Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.xl)) {

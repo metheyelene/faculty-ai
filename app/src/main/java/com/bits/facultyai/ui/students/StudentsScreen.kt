@@ -55,6 +55,7 @@ import com.bits.facultyai.ui.components.KineticSectionHeader
 import com.bits.facultyai.ui.components.KineticStat
 import com.bits.facultyai.ui.components.KineticTextField
 import com.bits.facultyai.ui.navigation.studentDetailRoute
+import com.bits.facultyai.ui.navigation.KineticBottomNavigation
 import com.bits.facultyai.ui.students.StudentsViewModel.ImportState
 import com.bits.facultyai.ui.theme.KineticBorder
 import com.bits.facultyai.ui.theme.KineticSpacing
@@ -197,7 +198,8 @@ fun StudentsScreen(
                     }
                     KineticDivider()
                 }
-                item { Spacer(Modifier.height(KineticSpacing.xl)) }
+                // Clears the floating glass dock + system navigation area.
+                item { Spacer(Modifier.height(KineticBottomNavigation.bottomClearance())) }
             }
         }
     }

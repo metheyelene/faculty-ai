@@ -35,6 +35,7 @@ import com.bits.facultyai.ui.components.KineticGhostButton
 import com.bits.facultyai.ui.components.KineticLoadingState
 import com.bits.facultyai.ui.components.KineticOutlinedButton
 import com.bits.facultyai.ui.components.KineticTextField
+import com.bits.facultyai.ui.navigation.KineticBottomNavigation
 import com.bits.facultyai.ui.theme.KineticBorder
 import com.bits.facultyai.ui.theme.KineticSpacing
 import com.bits.facultyai.ui.theme.KineticType
@@ -156,7 +157,8 @@ fun TimetableScreen(vm: TimetableViewModel = viewModel()) {
 
         Spacer(Modifier.height(KineticSpacing.md))
         KineticButton(text = "ADD CLASS", onClick = { vm.openAddDialog() })
-        Spacer(Modifier.height(KineticSpacing.xl))
+        // Clears the floating glass dock + system navigation area.
+        Spacer(Modifier.height(KineticBottomNavigation.bottomClearance()))
     }
 
     if (showAdd) {

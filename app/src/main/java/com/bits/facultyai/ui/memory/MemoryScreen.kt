@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.bits.facultyai.ui.components.GlassTopBar
 import com.bits.facultyai.ui.components.KineticBadge
 import com.bits.facultyai.ui.theme.KineticBorder
 import com.bits.facultyai.ui.components.KineticButton
@@ -30,7 +31,7 @@ import com.bits.facultyai.ui.theme.KineticType
 import com.bits.facultyai.ui.theme.LocalKineticColors
 
 @Composable
-fun MemoryScreen(vm: MemoryViewModel = viewModel()) {
+fun MemoryScreen(onBack: () -> Unit = {}, vm: MemoryViewModel = viewModel()) {
     val k = LocalKineticColors.current
     val memories by vm.memories.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
@@ -43,10 +44,10 @@ fun MemoryScreen(vm: MemoryViewModel = viewModel()) {
             .fillMaxSize()
             .background(k.background)
             .verticalScroll(rememberScrollState())
+            .navigationBarsPadding()
             .padding(horizontal = KineticSpacing.lg),
     ) {
-        Spacer(Modifier.height(KineticSpacing.xl))
-        KineticDisplayText(text = "MY MEMORY", style = KineticType.display.copy(fontSize = 44.sp))
+        GlassTopBar(title = "MY MEMORY", onBack = onBack)
         Text(
             text = "What your assistant remembers — only from what you allowed",
             style = KineticType.label,

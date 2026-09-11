@@ -24,6 +24,7 @@ import com.bits.facultyai.ui.components.KineticDivider
 import com.bits.facultyai.ui.components.KineticEmptyState
 import com.bits.facultyai.ui.theme.KineticBorder
 import com.bits.facultyai.ui.components.KineticSectionHeader
+import com.bits.facultyai.ui.navigation.KineticBottomNavigation
 import com.bits.facultyai.ui.theme.KineticSpacing
 import com.bits.facultyai.ui.theme.KineticType
 import com.bits.facultyai.ui.theme.LocalKineticColors
@@ -126,6 +127,7 @@ fun AttendanceScreen(
                 KineticDivider()
             }
         }
-        Spacer(Modifier.height(KineticSpacing.xl))
+        // Clears the floating glass dock + system navigation area.
+        Spacer(Modifier.height(KineticBottomNavigation.bottomClearance()))
     }
 }

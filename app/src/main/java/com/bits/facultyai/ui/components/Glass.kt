@@ -12,10 +12,16 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -34,6 +40,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -404,6 +411,73 @@ fun GlassEmptyState(
             ) {
                 GlassButton(text = actionText, onClick = onAction)
             }
+        }
+    }
+}
+
+/**
+ * Glass top bar — a THICK floating slab for secondary screens: back
+ * affordance, small uppercase context title and a trailing action slot.
+ * Deliberately near-opaque (THICK) so it stays readable over scrolling
+ * content without needing its own backdrop blur; the dock remains the one
+ * blurred surface.
+ */
+@Composable
+fun GlassTopBar(
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    onBack: (() -> Unit)? = null,
+    trailing: @Composable RowScope.() -> Unit = {},
+) {
+    val k = LocalKineticColors.current
+    GlassSurface(
+        modifier = modifier.fillMaxWidth(),
+        strength = GlassStrength.THICK,
+        shape = RectangleShape,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 64.dp)
+                .padding(horizontal = KineticSpacing.md, vertical = KineticSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (onBack != null) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(Glass.shape(Glass.cornerSm))
+                        .clickable(onClickLabel = "Back") { onBack() }
+                        .wrapContentSize(Alignment.Center),
+                ) {
+                    Text(
+                        text = "←",
+                        style = KineticType.headingSm,
+                        color = k.accent,
+                    )
+                }
+                Spacer(Modifier.width(KineticSpacing.sm))
+            }
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = title.uppercase(),
+                    style = KineticType.labelBold.copy(fontSize = 13.sp, letterSpacing = 1.5.sp),
+                    color = k.foreground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (subtitle != null) {
+                    Text(
+                        text = subtitle,
+                        style = KineticType.label.copy(fontSize = 11.sp),
+                        color = k.mutedForeground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            trailing()
         }
     }
 }

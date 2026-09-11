@@ -18,6 +18,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bits.facultyai.data.local.AcademicEventEntity
 import com.bits.facultyai.domain.TimeUtils
+import com.bits.facultyai.ui.components.GlassTopBar
 import com.bits.facultyai.ui.components.KineticBadge
 import com.bits.facultyai.ui.components.KineticButton
 import com.bits.facultyai.ui.components.KineticDisplayText
@@ -48,14 +49,11 @@ fun CalendarScreen(vm: CalendarViewModel = viewModel(), onBack: () -> Unit) {
             .fillMaxSize()
             .background(k.background)
             .verticalScroll(rememberScrollState())
+            .navigationBarsPadding()
             .padding(horizontal = KineticSpacing.lg),
     ) {
         Spacer(Modifier.height(KineticSpacing.xl))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            KineticGhostButton(text = "← BACK", onClick = onBack)
-        }
-        KineticDisplayText(text = "ACADEMIC", style = KineticType.display.copy(fontSize = 40.sp))
-        KineticDisplayText(text = "CALENDAR", style = KineticType.display.copy(fontSize = 40.sp), color = k.accent)
+        GlassTopBar(title = "ACADEMIC CALENDAR", onBack = onBack)
         Spacer(Modifier.height(KineticSpacing.lg))
 
         // ---- Month switcher ----

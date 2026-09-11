@@ -21,7 +21,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.defaultMinSize
@@ -60,6 +62,7 @@ import com.bits.facultyai.ui.components.GlassSurface
 import com.bits.facultyai.ui.components.GlassTextField
 import com.bits.facultyai.ui.components.GlassDialogSurface
 import com.bits.facultyai.ui.components.KineticBadge
+import com.bits.facultyai.ui.navigation.KineticBottomNavigation
 import com.bits.facultyai.ui.components.KineticButton
 import com.bits.facultyai.ui.components.KineticGhostButton
 import com.bits.facultyai.ui.theme.KineticBorder
@@ -67,6 +70,7 @@ import com.bits.facultyai.ui.theme.KineticSpacing
 import com.bits.facultyai.ui.theme.KineticType
 import com.bits.facultyai.ui.theme.LocalKineticColors
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AssistantScreen(vm: AssistantViewModel = viewModel()) {
     val k = LocalKineticColors.current
@@ -80,24 +84,36 @@ fun AssistantScreen(vm: AssistantViewModel = viewModel()) {
         if (chat.isNotEmpty()) listState.animateScrollToItem(chat.size - 1)
     }
 
-    // Context-aware suggestions grounded in real data.
-    val profile by vm.settings.collectAsStateWithLifecycle()
-    val suggestions = remember(chat.size) {
-        listOf(
-            "What is my next class?",
-            "What do I have tomorrow?",
-            "What are my open tasks?",
-            "Create a lesson plan",
-            "Find my notes about DSP",
-            "What did I save about my students?",
-        )
+    // Suggestion chips grounded in the faculty's REAL data: subject pressure
+    // from the timetable, open work from tasks, note topics from their own
+    // library, recall from saved memories. Falls back to generic prompts when
+    // the workspace is still empty. Refreshes as the conversation grows.
+    val timetable by vm.timetable.collectAsStateWithLifecycle()
+    val tasks by vm.tasks.collectAsStateWithLifecycle()
+    val notes by vm.notes.collectAsStateWithLifecycle()
+    val memories by vm.memories.collectAsStateWithLifecycle()
+    val suggestions = remember(chat.size, timetable, tasks, notes, memories) {
+        buildList {
+            if (timetable.isNotEmpty()) add("What is my next class?")
+            if (tasks.any { !it.completed }) add("What are my open tasks?")
+            if (timetable.size >= 2) add("What do I have tomorrow?")
+            add("Create a lesson plan")
+            notes.firstNotNullOfOrNull { note ->
+                note.title.split(Regex("\\s+"))
+                    .firstOrNull { it.length > 3 }
+                    ?.trimEnd(',', '.', ':', '!')
+            }?.let { add("Find my notes about $it") }
+            if (memories.isNotEmpty()) add("What do you remember about me?")
+        }.ifEmpty { listOf("What can you help me with?", "Create a lesson plan") }.take(6)
     }
 
+    // The dock hides itself while the keyboard is open, so the composer only
+    // needs full dock clearance when the keyboard is closed.
+    val imeVisible = WindowInsets.isImeVisible
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(k.background)
-            .navigationBarsPadding()
             .imePadding()
             .padding(horizontal = KineticSpacing.lg),
     ) {
@@ -179,7 +195,15 @@ fun AssistantScreen(vm: AssistantViewModel = viewModel()) {
             style = KineticType.label.copy(fontSize = 11.sp),
             color = k.mutedForeground,
         )
-        Spacer(Modifier.height(KineticSpacing.sm))
+        // When the keyboard is closed this clears the floating glass dock +
+        // system navigation area; with the keyboard open the dock is hidden
+        // and the composer rides just above the IME.
+        Spacer(
+            Modifier.height(
+                if (imeVisible) KineticSpacing.sm
+                else KineticBottomNavigation.bottomClearance()
+            )
+        )
     }
 }
 
