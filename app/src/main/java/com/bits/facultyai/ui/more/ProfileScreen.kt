@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -32,7 +33,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class ProfileViewModel(application: Application) : ViewModel() {
+// AndroidViewModel (not plain ViewModel): the Android ViewModelFactory only
+// instantiates plain ViewModels via a NO-ARG constructor — this class only has
+// an (Application) constructor, which crashed the screen on open in release.
+class ProfileViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = FacultyDatabase.get(application).facultyDao()
     private val _profile = MutableStateFlow<FacultyProfileEntity?>(null)
     val profile: StateFlow<FacultyProfileEntity?> = _profile
@@ -60,12 +64,15 @@ class ProfileViewModel(application: Application) : ViewModel() {
     ) {
         viewModelScope.launch {
             val p = _profile.value ?: return@launch
+            // FIX: save EXACTLY what the user typed (trimmed) — the old
+            // ifBlank-fallback made it impossible to clear an optional field.
+            // Only fullName keeps a guard (it's the app-wide identity).
             dao.upsertProfile(
                 p.copy(
-                    fullName = fullName.ifBlank { p.fullName },
-                    preferredName = preferredName.ifBlank { fullName.ifBlank { p.preferredName } },
-                    designation = designation.ifBlank { p.designation },
-                    department = department.ifBlank { p.department },
+                    fullName = fullName.trim().ifBlank { p.fullName },
+                    preferredName = preferredName.trim(),
+                    designation = designation.trim(),
+                    department = department.trim(),
                     employeeId = employeeId.trim(),
                     email = email.trim(),
                     phone = phone.trim(),
@@ -73,8 +80,8 @@ class ProfileViewModel(application: Application) : ViewModel() {
                     specialization = specialization.trim(),
                     cabin = cabin.trim(),
                     subjects = subjects.trim(),
-                    academicYear = academicYear.trim().ifBlank { p.academicYear },
-                    semester = semester.trim().ifBlank { p.semester },
+                    academicYear = academicYear.trim(),
+                    semester = semester.trim(),
                     updatedAt = System.currentTimeMillis(),
                 )
             )
@@ -110,6 +117,24 @@ fun ProfileScreen(onBack: () -> Unit, vm: ProfileViewModel = viewModel()) {
     var semester by remember(profile) { mutableStateOf(profile?.semester ?: "") }
 
     val nameError = if (editing && fullName.isBlank()) "Please enter your name." else null
+    // Light-touch validation: flag obviously wrong contact details but never
+    // block saving — optional fields stay optional.
+    val emailError = if (editing && email.isNotBlank() && !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches())
+        "That email doesn't look right." else null
+    val phoneError = if (editing && phone.isNotBlank() && phone.trim().length < 6)
+        "That phone number looks too short." else null
+    val hasErrors = nameError != null || emailError != null || phoneError != null
+
+    // Transient "saved" confirmation, readable after editing mode closes.
+    var showSavedNotice by remember { mutableStateOf(false) }
+    LaunchedEffect(savedFlag) {
+        if (savedFlag) {
+            showSavedNotice = true
+            vm.consumeSaved()
+            kotlinx.coroutines.delay(2500)
+            showSavedNotice = false
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -138,6 +163,17 @@ fun ProfileScreen(onBack: () -> Unit, vm: ProfileViewModel = viewModel()) {
             },
         )
         Spacer(Modifier.height(KineticSpacing.lg))
+
+        // Transient save confirmation — shown at the top so it's visible
+        // whether or not the screen is in editing mode.
+        if (showSavedNotice) {
+            Text(
+                text = "PROFILE SAVED ✓",
+                style = KineticType.labelBold,
+                color = k.accent,
+            )
+            Spacer(Modifier.height(KineticSpacing.sm))
+        }
 
         // Identity block — initial letter avatar (photo hook ready: replace Box with AsyncImage)
         Box(
@@ -169,6 +205,10 @@ fun ProfileScreen(onBack: () -> Unit, vm: ProfileViewModel = viewModel()) {
         if (editing) {
             KineticTextField(value = fullName, onValueChange = { fullName = it }, hint = "FULL NAME *", isError = nameError != null, errorMessage = nameError)
             Spacer(Modifier.height(KineticSpacing.md))
+            KineticTextField(value = email, onValueChange = { email = it }, hint = "EMAIL", isError = emailError != null, errorMessage = emailError, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Email))
+            Spacer(Modifier.height(KineticSpacing.md))
+            KineticTextField(value = phone, onValueChange = { phone = it }, hint = "PHONE", isError = phoneError != null, errorMessage = phoneError, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone))
+            Spacer(Modifier.height(KineticSpacing.md))
             KineticTextField(value = preferredName, onValueChange = { preferredName = it }, hint = "PREFERRED DISPLAY NAME")
             Spacer(Modifier.height(KineticSpacing.md))
             KineticTextField(value = designation, onValueChange = { designation = it }, hint = "DESIGNATION")
@@ -176,10 +216,6 @@ fun ProfileScreen(onBack: () -> Unit, vm: ProfileViewModel = viewModel()) {
             KineticTextField(value = department, onValueChange = { department = it }, hint = "DEPARTMENT")
             Spacer(Modifier.height(KineticSpacing.md))
             KineticTextField(value = employeeId, onValueChange = { employeeId = it }, hint = "FACULTY / EMPLOYEE ID")
-            Spacer(Modifier.height(KineticSpacing.md))
-            KineticTextField(value = email, onValueChange = { email = it }, hint = "EMAIL")
-            Spacer(Modifier.height(KineticSpacing.md))
-            KineticTextField(value = phone, onValueChange = { phone = it }, hint = "PHONE")
             Spacer(Modifier.height(KineticSpacing.md))
             KineticTextField(value = qualification, onValueChange = { qualification = it }, hint = "QUALIFICATION")
             Spacer(Modifier.height(KineticSpacing.md))
@@ -195,7 +231,7 @@ fun ProfileScreen(onBack: () -> Unit, vm: ProfileViewModel = viewModel()) {
             Spacer(Modifier.height(KineticSpacing.lg))
             KineticButton(
                 text = "SAVE PROFILE",
-                enabled = fullName.isNotBlank(),
+                enabled = fullName.isNotBlank() && !hasErrors,
                 onClick = {
                     vm.save(
                         fullName, preferredName, designation, department, employeeId, email, phone,
@@ -204,10 +240,6 @@ fun ProfileScreen(onBack: () -> Unit, vm: ProfileViewModel = viewModel()) {
                     editing = false
                 },
             )
-            if (savedFlag) {
-                Spacer(Modifier.height(KineticSpacing.sm))
-                Text(text = "PROFILE SAVED", style = KineticType.labelBold, color = k.accent)
-            }
         } else {
             KineticSectionHeader(title = "IDENTITY")
             InfoRow("EMPLOYEE ID", profile?.employeeId?.ifBlank { null } ?: "—")

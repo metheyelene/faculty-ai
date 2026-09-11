@@ -34,6 +34,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -59,6 +62,7 @@ import com.bits.facultyai.ui.components.GlassCard
 import com.bits.facultyai.ui.components.GlassChip
 import com.bits.facultyai.ui.components.GlassStrength
 import com.bits.facultyai.ui.components.GlassSurface
+import com.bits.facultyai.ui.components.GlassSendButton
 import com.bits.facultyai.ui.components.GlassTextField
 import com.bits.facultyai.ui.components.GlassDialogSurface
 import com.bits.facultyai.ui.components.KineticBadge
@@ -163,7 +167,20 @@ fun AssistantScreen(vm: AssistantViewModel = viewModel()) {
 
         Spacer(Modifier.height(KineticSpacing.md))
 
-        // ---- Composer: glass input, always-visible, high-contrast ----
+        // ---- Composer: glass input + ALWAYS-VISIBLE send button ----
+        // The old send control was a disabled KineticButton whose muted gray
+        // fill vanished against the background. This dedicated glass send
+        // control stays visible in every state and both themes.
+        val thinking = phase == AssistantPhase.THINKING
+        val canSend = !thinking && input.isNotBlank()
+        fun submit() {
+            val q = input.trim()
+            if (q.isEmpty() || !canSend) return
+            // Clear first: a second tap in the same frame sees blank input
+            // and is ignored — no duplicate submissions.
+            input = ""
+            vm.ask(q)
+        }
         Row(verticalAlignment = Alignment.Bottom) {
             GlassTextField(
                 value = input,
@@ -172,22 +189,16 @@ fun AssistantScreen(vm: AssistantViewModel = viewModel()) {
                 modifier = Modifier.weight(1f),
                 maxLines = 5,
                 minHeight = 52.dp,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                keyboardActions = KeyboardActions(onSend = { submit() }),
             )
             Spacer(Modifier.width(KineticSpacing.sm))
-            KineticButton(
-                text = if (phase == AssistantPhase.THINKING) "…" else "ASK",
-                onClick = {
-                    val q = input.trim()
-                    if (q.isNotEmpty()) {
-                        vm.ask(q)
-                        input = ""
-                    }
-                },
-                enabled = phase != AssistantPhase.THINKING && input.isNotBlank(),
-                height = 52,
+            GlassSendButton(
+                onClick = { submit() },
+                enabled = input.isNotBlank(),
+                busy = thinking,
+                contentDescription = "Send message",
             )
-            // The disabled ASK button stays tappable-height; no layout shift
-            // when it flips enabled as the user types.
         }
         Spacer(Modifier.height(KineticSpacing.sm))
         Text(

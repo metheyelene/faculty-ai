@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -120,15 +121,22 @@ fun StudentsScreen(
         )
         Spacer(Modifier.height(KineticSpacing.lg))
 
-        // Year selector — 1ST..4TH year chips.
-        Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)) {
+        // Year selector — 1ST..4TH year chips. Scrollable: overflows at
+        // large font scales otherwise.
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm),
+        ) {
             ACADEMIC_YEARS.forEach { year ->
                 SectionChip(label = ordinal(year), selected = selectedYear == year, onClick = { vm.selectYear(year) })
             }
         }
         Spacer(Modifier.height(KineticSpacing.sm))
         // Section chips for the chosen year (ALL + every imported section).
-        Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)) {
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm),
+        ) {
             val chipSections: List<String?> = listOf(null) + availableSections.toList()
             chipSections.forEach { section ->
                 SectionChip(
@@ -335,7 +343,10 @@ private fun ImportPreview(
                 )
                 Spacer(Modifier.height(KineticSpacing.sm))
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)) {
+            Row(
+                Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm),
+            ) {
                 ACADEMIC_YEARS.forEach { year ->
                     SectionChip(label = ordinal(year), selected = state.chosenYear == year, onClick = { onChooseYear(year) })
                 }

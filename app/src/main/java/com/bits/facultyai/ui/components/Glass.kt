@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -120,8 +122,15 @@ fun GlassSurface(
         GlassStrength.REGULAR -> k.glassRegular
         GlassStrength.THICK -> k.glassThick
     }
-    // Without hardware blur, raise opacity slightly for readability.
-    val boost = if (!blur && strength != GlassStrength.THICK) 0.08f else 0f
+    // Without hardware blur, raise opacity so text contrast never depends on
+    // what happens to scroll underneath. Tuned per strength: the more
+    // translucent the base layer, the more the fallback needs.
+    val boost = if (!blur) when (strength) {
+        GlassStrength.ULTRA_THIN -> 0.16f
+        GlassStrength.THIN -> 0.13f
+        GlassStrength.REGULAR -> 0.10f
+        GlassStrength.THICK -> 0.0f
+    } else 0f
     val surface = baseColor.copy(alpha = (baseColor.alpha + boost).coerceAtMost(0.99f))
     val border = when {
         selected -> k.accent
@@ -185,6 +194,69 @@ fun GlassCard(
             modifier = Modifier.padding(KineticSpacing.lg),
             content = content,
         )
+    }
+}
+
+/**
+ * Composer send control: a 52dp tappable glass square (≥44dp target) that is
+ * ALWAYS visible — accent glass with a contrasting arrow when enabled,
+ * bordered glass with a clear muted arrow when idle/disabled. Never hidden,
+ * never reduced to an invisible gray fill.
+ */
+@Composable
+fun GlassSendButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    busy: Boolean = false,
+    contentDescription: String = "Send message",
+) {
+    val k = LocalKineticColors.current
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val reduced = rememberReducedMotion()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed && !reduced) 0.94f else 1f,
+        animationSpec = KineticMotion.springFast(),
+        label = "sendPressScale",
+    )
+    val shape = Glass.shape(Glass.cornerSm)
+    Box(
+        modifier = modifier
+            .size(52.dp)
+            .scale(scale)
+            .clip(shape)
+            .then(
+                if (enabled && !busy) {
+                    Modifier.background(k.accent, shape)
+                } else {
+                    Modifier
+                        .background(k.glassRegular, shape)
+                        .border(KineticBorder.standard, if (enabled) k.accent else k.glassBorder, shape)
+                },
+            )
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                enabled = enabled && !busy,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (busy) {
+            // Small, calm progress ring — the “thinking” affordance.
+            CircularProgressIndicator(
+                modifier = Modifier.size(22.dp),
+                strokeWidth = 2.dp,
+                color = k.accent,
+            )
+        } else {
+            Text(
+                text = "➤",
+                style = KineticType.heading,
+                color = if (enabled) k.accentForeground else k.mutedForeground,
+            )
+        }
     }
 }
 
@@ -294,6 +366,8 @@ fun GlassTextField(
     errorMessage: String? = null,
     keyboardType: KeyboardType = KeyboardType.Text,
     minHeight: Dp = 48.dp,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
 ) {
     val k = LocalKineticColors.current
     var focused by remember { mutableStateOf(false) }
@@ -314,7 +388,8 @@ fun GlassTextField(
             cursorBrush = SolidColor(k.accent),
             minLines = minLines,
             maxLines = maxLines,
-            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            keyboardOptions = keyboardOptions.copy(keyboardType = keyboardType),
+            keyboardActions = keyboardActions,
             modifier = Modifier
                 .fillMaxWidth()
                 .defaultMinSize(minHeight = minHeight)

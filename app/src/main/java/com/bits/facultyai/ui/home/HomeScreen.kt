@@ -311,7 +311,8 @@ private fun TodaySlotRow(slot: ClassSlotEntity, state: String, onClick: () -> Un
             text = TimeUtils.formatTime(slot.startTimeMinutes),
             style = KineticType.bodyMedium.copy(fontSize = 15.sp),
             color = if (state == "PAST") k.mutedForeground else k.accent,
-            modifier = Modifier.width(88.dp),
+            // Grows with font scale instead of clipping the time.
+            modifier = Modifier.widthIn(min = 88.dp),
         )
         Column(Modifier.weight(1f)) {
             Text(

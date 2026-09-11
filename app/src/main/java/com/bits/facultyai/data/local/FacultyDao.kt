@@ -147,6 +147,44 @@ interface FacultyDao {
     @Query("DELETE FROM note WHERE id = :id")
     suspend fun deleteNote(id: Long)
 
+    /** Marks a note dirty (or clean) for sync bookkeeping. */
+    @Query("UPDATE note SET syncState = :state WHERE id = :id")
+    suspend fun setNoteSyncState(id: Long, state: String)
+
+    // ---- Note attachments ----
+    @Query("SELECT * FROM note_attachment WHERE noteId = :noteId ORDER BY createdAt, id")
+    fun observeAttachments(noteId: Long): Flow<List<NoteAttachmentEntity>>
+
+    @Query("SELECT * FROM note_attachment WHERE noteId = :noteId ORDER BY createdAt, id")
+    suspend fun getAttachments(noteId: Long): List<NoteAttachmentEntity>
+
+    /** Attachment counts keyed by noteId — for list badges without N+1 queries. */
+    @Query(
+        "SELECT noteId, COUNT(*) AS cnt, SUM(state = 'FAILED') AS failed, SUM(state IN ('UPLOADING','PROCESSING')) AS inProgress " +
+        "FROM note_attachment GROUP BY noteId"
+    )
+    fun observeAttachmentCounts(): Flow<List<AttachmentCountRow>>
+
+    @Query("SELECT * FROM note_attachment WHERE id = :id LIMIT 1")
+    suspend fun getAttachment(id: Long): NoteAttachmentEntity?
+
+    @Insert
+    suspend fun insertAttachment(attachment: NoteAttachmentEntity): Long
+
+    @Update
+    suspend fun updateAttachment(attachment: NoteAttachmentEntity)
+
+    @Query("DELETE FROM note_attachment WHERE id = :id")
+    suspend fun deleteAttachment(id: Long)
+
+    /** Every attachment currently sitting in a failed state — used by retry-all. */
+    @Query("SELECT * FROM note_attachment WHERE state = 'FAILED'")
+    suspend fun getFailedAttachments(): List<NoteAttachmentEntity>
+
+    /** All attachments — lets list search cover attachment file names. */
+    @Query("SELECT * FROM note_attachment")
+    fun observeAllAttachments(): Flow<List<NoteAttachmentEntity>>
+
     // ---- Tasks ----
     @Query("SELECT * FROM task ORDER BY completed, dueAt IS NULL, dueAt, createdAt DESC")
     fun observeTasks(): Flow<List<TaskEntity>>
@@ -196,6 +234,108 @@ interface FacultyDao {
 
     @Query("DELETE FROM memory")
     suspend fun clearMemories()
+
+    // ---- Events ----
+    @Query("SELECT * FROM event ORDER BY date DESC, startTimeMinutes DESC")
+    fun observeEvents(): Flow<List<EventEntity>>
+
+    @Query("SELECT * FROM event ORDER BY date DESC, startTimeMinutes DESC")
+    suspend fun getEvents(): List<EventEntity>
+
+    @Query("SELECT * FROM event WHERE id = :id LIMIT 1")
+    suspend fun getEvent(id: Long): EventEntity?
+
+    @Query("SELECT * FROM event WHERE id = :id LIMIT 1")
+    fun observeEvent(id: Long): Flow<EventEntity?>
+
+    @Insert
+    suspend fun insertEvent(event: EventEntity): Long
+
+    @Update
+    suspend fun updateEvent(event: EventEntity)
+
+    @Query("DELETE FROM event WHERE id = :id")
+    suspend fun deleteEvent(id: Long)
+
+    @Query("UPDATE event SET syncState = :state WHERE id = :id")
+    suspend fun setEventSyncState(id: Long, state: String)
+
+    // ---- Event photos ----
+    @Query("SELECT * FROM event_photo WHERE eventId = :eventId ORDER BY createdAt, id")
+    fun observeEventPhotos(eventId: Long): Flow<List<EventPhotoEntity>>
+
+    @Query("SELECT * FROM event_photo WHERE eventId = :eventId ORDER BY createdAt, id")
+    suspend fun getEventPhotos(eventId: Long): List<EventPhotoEntity>
+
+    @Query("SELECT * FROM event_photo WHERE id = :id LIMIT 1")
+    suspend fun getEventPhoto(id: Long): EventPhotoEntity?
+
+    @Insert
+    suspend fun insertEventPhoto(photo: EventPhotoEntity): Long
+
+    @Update
+    suspend fun updateEventPhoto(photo: EventPhotoEntity)
+
+    @Query("DELETE FROM event_photo WHERE id = :id")
+    suspend fun deleteEventPhoto(id: Long)
+
+    @Query("DELETE FROM event_photo WHERE eventId = :eventId")
+    suspend fun deleteEventPhotosFor(eventId: Long)
+
+    @Query("UPDATE event_photo SET isCover = 0 WHERE eventId = :eventId")
+    suspend fun clearEventCoverFlags(eventId: Long)
+
+    // ---- Event expenses ----
+    @Query("SELECT * FROM event_expense WHERE eventId = :eventId ORDER BY date DESC, id DESC")
+    fun observeEventExpenses(eventId: Long): Flow<List<EventExpenseEntity>>
+
+    @Query("SELECT * FROM event_expense WHERE eventId = :eventId ORDER BY date DESC, id DESC")
+    suspend fun getEventExpenses(eventId: Long): List<EventExpenseEntity>
+
+    @Query("SELECT * FROM event_expense WHERE id = :id LIMIT 1")
+    suspend fun getEventExpense(id: Long): EventExpenseEntity?
+
+    @Insert
+    suspend fun insertEventExpense(expense: EventExpenseEntity): Long
+
+    @Update
+    suspend fun updateEventExpense(expense: EventExpenseEntity)
+
+    @Query("DELETE FROM event_expense WHERE id = :id")
+    suspend fun deleteEventExpense(id: Long)
+
+    @Query("DELETE FROM event_expense WHERE eventId = :eventId")
+    suspend fun deleteEventExpensesFor(eventId: Long)
+
+    // ---- Event collections ----
+    @Query("SELECT * FROM event_collection WHERE eventId = :eventId ORDER BY date DESC, id DESC")
+    fun observeEventCollections(eventId: Long): Flow<List<EventCollectionEntity>>
+
+    @Query("SELECT * FROM event_collection WHERE eventId = :eventId ORDER BY date DESC, id DESC")
+    suspend fun getEventCollections(eventId: Long): List<EventCollectionEntity>
+
+    @Query("SELECT * FROM event_collection WHERE id = :id LIMIT 1")
+    suspend fun getEventCollection(id: Long): EventCollectionEntity?
+
+    @Insert
+    suspend fun insertEventCollection(collection: EventCollectionEntity): Long
+
+    @Update
+    suspend fun updateEventCollection(collection: EventCollectionEntity)
+
+    @Query("DELETE FROM event_collection WHERE id = :id")
+    suspend fun deleteEventCollection(id: Long)
+
+    @Query("DELETE FROM event_collection WHERE eventId = :eventId")
+    suspend fun deleteEventCollectionsFor(eventId: Long)
+
+    /** Aggregate spend per event for list-screen badges — computed in SQL, never invented. */
+    @Query("SELECT eventId, COALESCE(SUM(amountPaisa), 0) AS totalPaisa FROM event_expense GROUP BY eventId")
+    fun observeSpentByEvent(): Flow<List<EventMoneyRow>>
+
+    /** Aggregate collections per event for list-screen badges. */
+    @Query("SELECT eventId, COALESCE(SUM(amountPaisa), 0) AS totalPaisa FROM event_collection GROUP BY eventId")
+    fun observeCollectedByEvent(): Flow<List<EventMoneyRow>>
 
     @Query("DELETE FROM class_slot")
     suspend fun clearTimetable()

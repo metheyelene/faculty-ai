@@ -23,8 +23,8 @@ android {
         applicationId = "com.bits.facultyai"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.3.0"
+        versionCode = 9
+        versionName = "1.3.4"
         vectorDrawables.useSupportLibrary = true
     }
 
@@ -76,6 +76,10 @@ android {
 dependencies {
     // On-device text recognition for timetable photo import (bundled, offline capable)
     implementation("com.google.mlkit:text-recognition:16.0.1")
+    // Event photos / note attachments image loading.
+    implementation("io.coil-kt:coil-compose:2.6.0")
+    // EXIF orientation read for photo compression.
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

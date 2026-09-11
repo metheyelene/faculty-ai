@@ -25,8 +25,13 @@ import com.bits.facultyai.ui.theme.LocalKineticColors
 import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bits.facultyai.data.local.AttendanceEntryEntity
 import com.bits.facultyai.data.local.FacultyDatabase
@@ -56,7 +61,16 @@ class StudentDetailViewModel(savedStateHandle: SavedStateHandle, application: Ap
 fun StudentDetailScreen(
     studentId: Long,
     onBack: () -> Unit,
-    vm: StudentDetailViewModel = viewModel(),
+    vm: StudentDetailViewModel = viewModel(
+        factory = viewModelFactory {
+            initializer {
+                StudentDetailViewModel(
+                    createSavedStateHandle(),
+                    checkNotNull(this[APPLICATION_KEY]),
+                )
+            }
+        },
+    ),
 ) {
     val k = LocalKineticColors.current
     val student by vm.student.collectAsStateWithLifecycle()

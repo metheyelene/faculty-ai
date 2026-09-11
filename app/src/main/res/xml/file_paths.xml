@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FileProvider paths: note attachments + event photos/receipts live in filesDir, camera capture in cacheDir. -->
+<paths>
+    <files-path
+        name="note_attachments"
+        path="note_attachments/" />
+    <files-path
+        name="event_photos"
+        path="event_photos/" />
+    <cache-path
+        name="camera_cache"
+        path="camera/" />
+</paths>

@@ -62,7 +62,12 @@ import com.bits.facultyai.ui.memory.MemoryScreen
 import com.bits.facultyai.ui.more.MoreScreen
 import com.bits.facultyai.ui.more.ProfileScreen
 import com.bits.facultyai.ui.more.SettingsScreen
+import com.bits.facultyai.ui.events.EventDetailScreen
+import com.bits.facultyai.ui.events.EventEditorScreen
+import com.bits.facultyai.ui.events.EventsScreen
 import com.bits.facultyai.ui.onboarding.OnboardingScreen
+import com.bits.facultyai.ui.splash.KineticSplashOverlay
+import com.bits.facultyai.ui.splash.KineticSplashLoading
 
 private object Routes {
     const val ONBOARDING = "onboarding"
@@ -81,11 +86,16 @@ private object Routes {
     const val MORE = "more"
     const val PROFILE = "profile"
     const val SETTINGS = "settings"
+    const val EVENTS = "events"
+    const val EVENT_DETAIL = "event_detail/{eventId}"
+    const val EVENT_EDITOR = "event_editor/{eventId}"
 }
 
 fun attendanceRoute(slotId: Long) = "attendance_class/$slotId"
 fun noteEditorRoute(noteId: Long) = "note_editor/$noteId"
 fun studentDetailRoute(studentId: Long) = "student_detail/$studentId"
+fun eventDetailRoute(eventId: Long) = "event_detail/$eventId"
+fun eventEditorRoute(eventId: Long) = "event_editor/$eventId"
 
 private val topLevelRoutes = setOf(Routes.HOME, Routes.TIMETABLE, Routes.ATTENDANCE, Routes.ASSISTANT, Routes.MORE)
 
@@ -98,50 +108,25 @@ fun FacultyAINavHost(
     onOnboardingComplete: () -> Unit,
 ) {
     val k = LocalKineticColors.current
+    // Hoisted splash animatables: remembered at this scope, they survive the
+    // settings-load boundary, so the intro never replays when data arrives.
+    val splashIntro = remember { androidx.compose.animation.core.Animatable(0f) }
+    val splashExit = remember { androidx.compose.animation.core.Animatable(0f) }
+    val splashContentIn = remember { androidx.compose.animation.core.Animatable(0f) }
+    var splashGone by remember { mutableStateOf(false) }
+    val reducedMotion = rememberReducedMotion()
 
-    // Wait for settings before deciding the start destination (splash-like hold).
+    // Wait for settings before deciding the start destination. The liquid
+    // glass splash owns this window — no static loading text.
     if (settings == null) {
-        // Premium open: brand mark rises in with a soft scale — no artificial delay.
-        var shown by remember { mutableStateOf(false) }
-        LaunchedEffect(Unit) { shown = true }
-        val brandAlpha by androidx.compose.animation.core.animateFloatAsState(
-            targetValue = if (shown) 1f else 0f,
-            animationSpec = tween(KineticMotion.SLOW_MS, easing = KineticMotion.easeOut),
-            label = "brandAlpha",
+        KineticSplashOverlay(
+            intro = splashIntro,
+            exit = splashExit,
+            contentIn = splashContentIn,
+            settingsReady = false,
+            reducedMotion = reducedMotion,
+            onExitComplete = { splashGone = true },
         )
-        val brandScale by androidx.compose.animation.core.animateFloatAsState(
-            targetValue = if (shown) 1f else 0.96f,
-            animationSpec = KineticMotion.springSpatial(),
-            label = "brandScale",
-        )
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(k.background)
-                .statusBarsPadding()
-                .navigationBarsPadding(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = "ACADORA",
-                style = KineticType.display.copy(fontSize = 40.sp),
-                color = k.foreground,
-                modifier = Modifier.graphicsLayer {
-                    alpha = brandAlpha
-                    scaleX = brandScale
-                    scaleY = brandScale
-                },
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "LOADING",
-                style = KineticType.label,
-                color = k.accent,
-                modifier = Modifier.graphicsLayer { alpha = brandAlpha },
-            )
-            Spacer(modifier = Modifier.weight(1f))
-        }
         return
     }
 
@@ -153,7 +138,6 @@ fun FacultyAINavHost(
     // the assistant composer or any active input.
     val imeVisible = WindowInsets.isImeVisible
     val showDock = showBottomBar && !imeVisible
-    val reducedMotion = rememberReducedMotion()
     // Dock enters by rising + fading; exits the same way. Reduced motion:
     // no transition, instant presence.
     val dockProgress by animateFloatAsState(
@@ -204,6 +188,15 @@ fun FacultyAINavHost(
             startDestination = if (!settings.onboardingComplete) Routes.ONBOARDING else Routes.HOME,
             modifier = Modifier
                 .matchParentSize()
+                // Splash handoff: the real content rises from a whisper of
+                // scale as the splash dissolves. graphicsLayer reads state so
+                // only the draw phase invalidates (no recomposition).
+                .graphicsLayer {
+                    alpha = splashContentIn.value
+                    val s = 0.985f + 0.015f * splashContentIn.value
+                    scaleX = s
+                    scaleY = s
+                }
                 .then(if (hazeActive) Modifier.haze(hazeState) else Modifier),
             // Spatial continuity: forward slides left, back slides right,
             // always with a soft cross-fade. Fast, Apple-like ease-out.
@@ -266,6 +259,37 @@ fun FacultyAINavHost(
             composable(Routes.SETTINGS) {
                 SettingsScreen(onBack = { navController.popBackStack() })
             }
+            composable(Routes.EVENTS) {
+                EventsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenEvent = { id ->
+                        if (id > 0) navController.navigate(eventDetailRoute(id))
+                        else navController.navigate(eventEditorRoute(0L))
+                    },
+                )
+            }
+            composable(Routes.EVENT_DETAIL) { entry ->
+                val id = entry.arguments?.getString("eventId")?.toLongOrNull() ?: 0L
+                EventDetailScreen(
+                    onBack = { navController.popBackStack() },
+                    onEditEvent = { editId -> navController.navigate(eventEditorRoute(editId)) },
+                )
+            }
+            composable(Routes.EVENT_EDITOR) { entry ->
+                val id = entry.arguments?.getString("eventId")?.toLongOrNull() ?: 0L
+                EventEditorScreen(
+                    onBack = { navController.popBackStack() },
+                    onSaved = { savedId ->
+                        if (id > 0) {
+                            navController.popBackStack()
+                        } else {
+                            navController.navigate(eventDetailRoute(savedId)) {
+                                popUpTo(Routes.EVENTS)
+                            }
+                        }
+                    },
+                )
+            }
         }
 
         // The floating dock is the ONLY bottom-inset consumer in the app. It
@@ -284,6 +308,19 @@ fun FacultyAINavHost(
                         alpha = dockProgress
                         translationY = (1f - dockProgress) * 40f
                     },
+            )
+        }
+
+        // Liquid glass splash sits ABOVE everything and dissolves into the
+        // app. Removed from composition once fully gone (no cost afterwards).
+        if (!splashGone) {
+            KineticSplashOverlay(
+                intro = splashIntro,
+                exit = splashExit,
+                contentIn = splashContentIn,
+                settingsReady = true,
+                reducedMotion = reducedMotion,
+                onExitComplete = { splashGone = true },
             )
         }
     }

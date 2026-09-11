@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -14,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -37,7 +39,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class SettingsViewModel(application: Application) : ViewModel() {
+// AndroidViewModel (not plain ViewModel): the Android ViewModelFactory only
+// instantiates plain ViewModels via a NO-ARG constructor — this class only has
+// an (Application) constructor, which crashed the screen on open in release.
+class SettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val settingsRepo = SettingsRepository(application)
     private val dao = FacultyDatabase.get(application).facultyDao()
 
@@ -80,14 +85,22 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel()) {
 
         KineticSectionHeader(title = "APPEARANCE")
         val currentMode = settings?.themeMode ?: ThemeMode.SYSTEM
-        Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)) {
+        // Horizontally scrollable instead of a fixed Row: at 200% font scale
+        // three uppercase chips overflow the screen width.
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm),
+        ) {
             ThemeChip("SYSTEM", currentMode == ThemeMode.SYSTEM) { vm.setTheme(ThemeMode.SYSTEM) }
             ThemeChip("LIGHT", currentMode == ThemeMode.LIGHT) { vm.setTheme(ThemeMode.LIGHT) }
             ThemeChip("DARK", currentMode == ThemeMode.DARK) { vm.setTheme(ThemeMode.DARK) }
         }
 
         KineticSectionHeader(title = "GREETING STYLE")
-        Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)) {
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm),
+        ) {
             ThemeChip("TIME-BASED", (settings?.greetingStyle ?: 0) == 0) { vm.setGreetingStyle(0) }
             ThemeChip("WELCOME BACK", settings?.greetingStyle == 1) { vm.setGreetingStyle(1) }
             ThemeChip("HELLO", settings?.greetingStyle == 2) { vm.setGreetingStyle(2) }

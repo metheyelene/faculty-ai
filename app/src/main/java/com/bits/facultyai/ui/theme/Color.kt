@@ -55,22 +55,26 @@ data class KineticColors(
 fun lightKineticColors() = KineticColors(
     background = PaperWhite,
     foreground = InkBlack,
+    // Warm-tinted quiet surface instead of flat gray — bright, not heavy.
     muted = LightMutedSurface,
     mutedForeground = LightMutedFg,
     accent = AcidYellow,
     accentForeground = InkBlack,
     border = LightBorder,
-    glassSurface = PaperWhite.copy(alpha = 0.85f),
+    // Translucent glass: the light theme reads as layered glass, not white
+    // cards. Alpha lowered across the ladder; borders + highlights carry the
+    // definition so text contrast never depends on fill opacity.
+    glassSurface = PaperWhite.copy(alpha = 0.72f),
     glassBorder = LightBorder.copy(alpha = 0.9f),
     statusSuccess = StatusSuccess,
     statusWarning = StatusWarning,
     statusError = StatusError,
-    glassUltraThin = PaperWhite.copy(alpha = 0.60f),
-    glassThin = PaperWhite.copy(alpha = 0.76f),
-    glassRegular = PaperWhite.copy(alpha = 0.88f),
-    glassThick = PaperWhite.copy(alpha = 0.965f),
-    glassHighlight = Color.White.copy(alpha = 0.75f),
-    glassBlurTint = PaperWhite.copy(alpha = 0.62f),
+    glassUltraThin = PaperWhite.copy(alpha = 0.42f),
+    glassThin = PaperWhite.copy(alpha = 0.56f),
+    glassRegular = PaperWhite.copy(alpha = 0.68f),
+    glassThick = PaperWhite.copy(alpha = 0.90f),
+    glassHighlight = Color.White.copy(alpha = 0.85f),
+    glassBlurTint = PaperWhite.copy(alpha = 0.50f),
 )
 
 fun darkKineticColors() = KineticColors(
@@ -81,17 +85,19 @@ fun darkKineticColors() = KineticColors(
     accent = AcidYellow,
     accentForeground = InkBlack,
     border = DarkBorder,
-    glassSurface = Color(0xFF18181B).copy(alpha = 0.88f),
+    // Dark glass also gains a touch more translucency for depth parity with
+    // the light theme, while keeping the deep near-black base.
+    glassSurface = Color(0xFF18181B).copy(alpha = 0.78f),
     glassBorder = DarkBorder.copy(alpha = 0.9f),
     statusSuccess = StatusSuccess,
     statusWarning = StatusWarning,
     statusError = StatusError,
-    glassUltraThin = Color(0xFF18181B).copy(alpha = 0.55f),
-    glassThin = Color(0xFF1C1C20).copy(alpha = 0.74f),
-    glassRegular = Color(0xFF1B1B1F).copy(alpha = 0.87f),
-    glassThick = Color(0xFF1A1A1E).copy(alpha = 0.96f),
-    glassHighlight = Color.White.copy(alpha = 0.10f),
-    glassBlurTint = Color(0xFF18181B).copy(alpha = 0.62f),
+    glassUltraThin = Color(0xFF18181B).copy(alpha = 0.42f),
+    glassThin = Color(0xFF1C1C20).copy(alpha = 0.62f),
+    glassRegular = Color(0xFF1B1B1F).copy(alpha = 0.76f),
+    glassThick = Color(0xFF1A1A1E).copy(alpha = 0.92f),
+    glassHighlight = Color.White.copy(alpha = 0.12f),
+    glassBlurTint = Color(0xFF18181B).copy(alpha = 0.50f),
 )
 
 fun kineticMaterialScheme(c: KineticColors): ColorScheme =

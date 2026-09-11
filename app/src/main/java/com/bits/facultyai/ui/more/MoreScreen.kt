@@ -46,6 +46,9 @@ fun MoreScreen(onNavigate: (String) -> Unit) {
         MoreRow("ATTENDANCE", "Mark and review sessions", { onNavigate("attendance") })
         MoreRow("STUDENTS", "Sections and rosters", { onNavigate("students") })
 
+        KineticSectionHeader(title = "EVENTS")
+        MoreRow("EVENT MANAGER", "Fests, budgets, photos and finances", { onNavigate("events") })
+
         KineticSectionHeader(title = "SYSTEM")
         MoreRow("SETTINGS", "Theme, privacy, data", { onNavigate("settings") })
         // Clears the floating glass dock + system navigation area.

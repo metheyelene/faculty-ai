@@ -1,13 +1,19 @@
 package com.bits.facultyai.ui.onboarding
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -19,6 +25,7 @@ import com.bits.facultyai.ui.components.KineticDisplayText
 import com.bits.facultyai.ui.components.KineticGhostButton
 import com.bits.facultyai.ui.components.GlassTextField
 import com.bits.facultyai.ui.components.KineticTextField
+import com.bits.facultyai.ui.theme.KineticBorder
 import com.bits.facultyai.ui.theme.KineticSpacing
 import com.bits.facultyai.ui.theme.KineticType
 import com.bits.facultyai.ui.theme.LocalKineticColors
@@ -31,8 +38,18 @@ fun OnboardingScreen(
 ) {
     val profile by vm.profile.collectAsStateWithLifecycle()
     val step by vm.step.collectAsStateWithLifecycle()
+    // FIX: the Continue button read vm.fullName.value directly — a StateFlow
+    // read without collection never recomposes, so the button stayed disabled
+    // no matter what was typed. Collect it as Compose state instead.
+    val fullName by vm.fullName.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val k = LocalKineticColors.current
+
+    // Set when the user taps Continue on step 0 with an empty name — drives
+    // the inline "name required" error instead of a silently dead button.
+    // Reset whenever the step changes.
+    var nameAttempted by remember { mutableStateOf(false) }
+    LaunchedEffect(step) { nameAttempted = false }
 
     Column(
         modifier = Modifier
@@ -46,10 +63,10 @@ fun OnboardingScreen(
     ) {
         KineticDisplayText(
             text = when (step) {
-                0 -> "FACULTY AI"
+                0 -> "WELCOME TO ACADORA"
                 1 -> "YOUR SUBJECTS"
                 2 -> "YOUR ASSISTANT"
-                else -> "FACULTY AI"
+                else -> "ACADORA"
             },
             style = KineticType.display.copy(fontSize = 40.sp),
         )
@@ -66,8 +83,9 @@ fun OnboardingScreen(
         )
         Spacer(Modifier.height(KineticSpacing.xl))
 
+        val showNameError = step == 0 && nameAttempted && fullName.isBlank()
         when (step) {
-            0 -> ProfileStep(vm = vm)
+            0 -> ProfileStep(vm = vm, showNameError = showNameError)
             1 -> SubjectsStep(vm = vm)
             2 -> AssistantStep(vm = vm)
         }
@@ -81,29 +99,66 @@ fun OnboardingScreen(
             KineticGhostButton(text = "Skip", onClick = { scope.launch { vm.complete(onComplete) } })
             KineticButton(
                 text = if (step == 2) "Ready" else "Continue",
-                // Name is the one field that personalizes the whole app —
-                // require it on step 0 (Skip remains available).
-                enabled = step != 0 || vm.fullName.value.isNotBlank(),
-                onClick = { scope.launch { vm.next(onComplete) } },
+                // Name is the one field that personalizes the whole app.
+                enabled = step != 0 || fullName.isNotBlank(),
+                onClick = {
+                    if (step == 0 && fullName.isBlank()) {
+                        nameAttempted = true
+                    } else {
+                        scope.launch { vm.next(onComplete) }
+                    }
+                },
             )
         }
     }
 }
 
 @Composable
-private fun ProfileStep(vm: OnboardingViewModel) {
+private fun ProfileStep(vm: OnboardingViewModel, showNameError: Boolean) {
     val k = LocalKineticColors.current
     Column {
-        GlassTextField(value = vm.fullName.value, onValueChange = vm::setFullName, hint = "FULL NAME")
+        GlassTextField(value = vm.fullName.value, onValueChange = vm::setFullName, hint = "FULL NAME", isError = showNameError)
+        if (showNameError) {
+            Spacer(Modifier.height(KineticSpacing.xs))
+            Text(
+                text = "Please enter your name to continue — or tap SKIP.",
+                style = KineticType.label,
+                color = k.statusError,
+            )
+        }
         Spacer(Modifier.height(KineticSpacing.md))
         GlassTextField(value = vm.preferredName.value, onValueChange = vm::setPreferredName, hint = "PREFERRED NAME (HOW YOUR ASSISTANT GREETS YOU)")
         Spacer(Modifier.height(KineticSpacing.md))
-        GlassTextField(value = vm.designation.value, onValueChange = vm::setDesignation, hint = "DESIGNATION")
+        GlassTextField(value = vm.designation.value, onValueChange = vm::setDesignation, hint = "DESIGNATION (E.G. ASSISTANT PROFESSOR)")
+        Spacer(Modifier.height(KineticSpacing.xs))
+        Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)) {
+            listOf("PROFESSOR", "ASSOC. PROFESSOR", "ASST. PROFESSOR").forEach { pick ->
+                QuickPick(label = pick) { vm.setDesignation(pick) }
+            }
+        }
         Spacer(Modifier.height(KineticSpacing.md))
-        GlassTextField(value = vm.department.value, onValueChange = vm::setDepartment, hint = "DEPARTMENT")
+        GlassTextField(value = vm.department.value, onValueChange = vm::setDepartment, hint = "DEPARTMENT (E.G. ECE)")
         Spacer(Modifier.height(KineticSpacing.md))
         Text(
-            text = "Only your name, designation and department personalize the app. Everything stays editable in Profile.",
+            text = "Only your name, designation and department personalize the app. Everything stays editable in MY PROFILE.",
+            style = KineticType.label,
+            color = k.mutedForeground,
+        )
+    }
+}
+
+/** Small tappable preset chip (designation quick-picks). */
+@Composable
+private fun QuickPick(label: String, onClick: () -> Unit) {
+    val k = LocalKineticColors.current
+    Box(
+        modifier = Modifier
+            .border(KineticBorder.hair, k.border)
+            .clickable(onClick = onClick)
+            .padding(horizontal = KineticSpacing.md, vertical = KineticSpacing.xs),
+    ) {
+        Text(
+            text = label,
             style = KineticType.label,
             color = k.mutedForeground,
         )
