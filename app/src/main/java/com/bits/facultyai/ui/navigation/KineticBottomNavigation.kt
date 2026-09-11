@@ -186,7 +186,7 @@ fun KineticBottomNavigation(
                     label = "navLabelScale",
                 )
                 val interaction = remember { MutableInteractionSource() }
-                // Subtle yellow glass highlight on the active item.
+                // Subtle purple glass highlight on the active item.
                 val itemShape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
                 Column(
                     modifier = Modifier

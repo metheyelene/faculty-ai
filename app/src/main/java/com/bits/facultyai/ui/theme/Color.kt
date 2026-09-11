@@ -5,23 +5,66 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 
-// ---- Core palette (single source of truth) ----
-val AcidYellow = Color(0xFFDFE104)
-val InkBlack = Color(0xFF09090B)
-val PaperWhite = Color(0xFFFAFAFA)
+// =====================================================================
+// ACADORA — Obsidian Purple design tokens (single source of truth).
+//
+// A deep, muted, premium purple identity: near-black violet backgrounds,
+// layered translucent glass, and carefully controlled purple highlights.
+// Every screen reads these tokens via LocalKineticColors — no hardcoded
+// colors in feature code.
+// =====================================================================
 
-val LightBorder = Color(0xFFD4D4D8)
-val DarkBorder = Color(0xFF3F3F46)
-val LightMutedSurface = Color(0xFFE4E4E7)
-val DarkMutedSurface = Color(0xFF27272A)
-val LightMutedFg = Color(0xFF52525B)
-val DarkMutedFg = Color(0xFFA1A1AA)
+// ---- Core palette ----
 
-// Status colors: subordinate, used sparingly.
-val StatusSuccess = Color(0xFF1A9E4B)
-val StatusWarning = Color(0xFFC97A0E)
-val StatusError = Color(0xFFC4372D)
+/** Primary purple — interactive accent on dark surfaces. */
+val PrimaryPurple = Color(0xFF7C5CFF)
+
+/** Deep purple — accents on light surfaces, pressed/active fills. */
+val DeepPurple = Color(0xFF5B3FC4)
+
+/** Soft purple highlight — subtle strokes, glows, secondary accents. */
+val SoftPurple = Color(0xFFA78BFA)
+
+/** Obsidian dark background. */
+val ObsidianBackground = Color(0xFF0B0A10)
+
+/** Obsidian secondary background. */
+val ObsidianSurface = Color(0xFF12101A)
+
+/** Obsidian elevated surface (cards' quiet fill, muted surfaces). */
+val ObsidianElevated = Color(0xFF181522)
+
+/** Purple-tinted glass base: rgba(30, 24, 45, 0.55). */
+val ObsidianGlass = Color(0xFF1E182D)
+
+/** Primary text on dark. */
+val ObsidianTextPrimary = Color(0xFFF5F3FA)
+
+/** Secondary text on dark. */
+val ObsidianTextSecondary = Color(0xFFAAA5B8)
+
+/** Muted/tertiary text on dark. */
+val ObsidianTextMuted = Color(0xFF777181)
+
+/** Dark border: thin purple-neutral hairline. */
+val ObsidianBorder = Color(0xFF302A3D)
+
+// ---- Light-theme palette (lavender-neutral, NOT an inversion) ----
+
+val LilacBackground = Color(0xFFFAF9FC)
+val LilacSurface = Color(0xFFEFEDF6)
+val LilacForeground = Color(0xFF17141F)
+val LilacMutedFg = Color(0xFF5A5568)
+val LilacBorder = Color(0xFFDDD8E8)
+val LilacGlassBorder = Color(0xFFCFC8E2)
+
+// Status colors: subordinate, used sparingly. Desaturated to sit calmly
+// inside the purple identity.
+val StatusSuccess = Color(0xFF3E9E6E)
+val StatusWarning = Color(0xFFC08A2E)
+val StatusError = Color(0xFFC75555)
 
 @Immutable
 data class KineticColors(
@@ -37,6 +80,10 @@ data class KineticColors(
     val statusSuccess: Color,
     val statusWarning: Color,
     val statusError: Color,
+    /** Softer variant of the accent for strokes and gentle highlights. */
+    val accentSoft: Color = SoftPurple,
+    /** Extremely subtle glow — transparency, never neon. */
+    val glow: Color = accent.copy(alpha = 0.25f),
     // ---- Liquid Glass surface ladder (thin -> thick) ----
     val glassUltraThin: Color = glassSurface.copy(alpha = 0.55f),
     val glassThin: Color = glassSurface.copy(alpha = 0.74f),
@@ -53,55 +100,65 @@ data class KineticColors(
 )
 
 fun lightKineticColors() = KineticColors(
-    background = PaperWhite,
-    foreground = InkBlack,
-    // Warm-tinted quiet surface instead of flat gray — bright, not heavy.
-    muted = LightMutedSurface,
-    mutedForeground = LightMutedFg,
-    accent = AcidYellow,
-    accentForeground = InkBlack,
-    border = LightBorder,
-    // Translucent glass: the light theme reads as layered glass, not white
-    // cards. Alpha lowered across the ladder; borders + highlights carry the
-    // definition so text contrast never depends on fill opacity.
-    glassSurface = PaperWhite.copy(alpha = 0.72f),
-    glassBorder = LightBorder.copy(alpha = 0.9f),
+    background = LilacBackground,
+    foreground = LilacForeground,
+    // Light lavender quiet surface — bright and airy, never flat gray.
+    muted = LilacSurface,
+    mutedForeground = LilacMutedFg,
+    // Deep purple carries the accent on light: readable as text, elegant
+    // as fill. SoftPurple is reserved for gentle highlights.
+    accent = DeepPurple,
+    accentForeground = Color.White,
+    border = LilacBorder,
+    // Translucent lavender glass: borders + highlights carry the definition
+    // so text contrast never depends on fill opacity.
+    glassSurface = LilacBackground.copy(alpha = 0.72f),
+    glassBorder = LilacGlassBorder.copy(alpha = 0.9f),
     statusSuccess = StatusSuccess,
     statusWarning = StatusWarning,
     statusError = StatusError,
-    glassUltraThin = PaperWhite.copy(alpha = 0.42f),
-    glassThin = PaperWhite.copy(alpha = 0.56f),
-    glassRegular = PaperWhite.copy(alpha = 0.68f),
-    glassThick = PaperWhite.copy(alpha = 0.90f),
+    accentSoft = DeepPurple.copy(alpha = 0.55f),
+    glow = DeepPurple.copy(alpha = 0.16f),
+    glassUltraThin = LilacBackground.copy(alpha = 0.42f),
+    glassThin = LilacBackground.copy(alpha = 0.56f),
+    glassRegular = LilacBackground.copy(alpha = 0.68f),
+    glassThick = LilacBackground.copy(alpha = 0.90f),
     glassHighlight = Color.White.copy(alpha = 0.85f),
-    glassBlurTint = PaperWhite.copy(alpha = 0.50f),
+    glassBlurTint = LilacBackground.copy(alpha = 0.50f),
 )
 
 fun darkKineticColors() = KineticColors(
-    background = InkBlack,
-    foreground = PaperWhite,
-    muted = DarkMutedSurface,
-    mutedForeground = DarkMutedFg,
-    accent = AcidYellow,
-    accentForeground = InkBlack,
-    border = DarkBorder,
-    // Dark glass also gains a touch more translucency for depth parity with
-    // the light theme, while keeping the deep near-black base.
-    glassSurface = Color(0xFF18181B).copy(alpha = 0.78f),
-    glassBorder = DarkBorder.copy(alpha = 0.9f),
+    background = ObsidianBackground,
+    foreground = ObsidianTextPrimary,
+    // Elevated obsidian surface as the quiet fill.
+    muted = ObsidianElevated,
+    // Secondary text for readability; tertiary contexts use borders/muted.
+    mutedForeground = ObsidianTextSecondary,
+    accent = PrimaryPurple,
+    accentForeground = Color.White,
+    border = ObsidianBorder,
+    // Purple-tinted glass ladder — layered obsidian depth.
+    glassSurface = ObsidianGlass.copy(alpha = 0.55f),
+    glassBorder = Color(0xFF372F49).copy(alpha = 0.9f),
     statusSuccess = StatusSuccess,
     statusWarning = StatusWarning,
     statusError = StatusError,
-    glassUltraThin = Color(0xFF18181B).copy(alpha = 0.42f),
-    glassThin = Color(0xFF1C1C20).copy(alpha = 0.62f),
-    glassRegular = Color(0xFF1B1B1F).copy(alpha = 0.76f),
-    glassThick = Color(0xFF1A1A1E).copy(alpha = 0.92f),
-    glassHighlight = Color.White.copy(alpha = 0.12f),
-    glassBlurTint = Color(0xFF18181B).copy(alpha = 0.50f),
+    accentSoft = SoftPurple,
+    glow = PrimaryPurple.copy(alpha = 0.25f),
+    glassUltraThin = ObsidianGlass.copy(alpha = 0.34f),
+    glassThin = Color(0xFF1A1526).copy(alpha = 0.52f),
+    glassRegular = Color(0xFF191427).copy(alpha = 0.68f),
+    glassThick = Color(0xFF171221).copy(alpha = 0.90f),
+    // Soft purple-tinted inner highlight: the glass reads as lit from above
+    // with a violet cast, not white.
+    glassHighlight = SoftPurple.copy(alpha = 0.14f),
+    glassBlurTint = ObsidianGlass.copy(alpha = 0.55f),
 )
 
-fun kineticMaterialScheme(c: KineticColors): ColorScheme =
-    if (c.background == PaperWhite) lightColorScheme(
+fun kineticMaterialScheme(c: KineticColors): ColorScheme {
+    // Theme flavor is derived from background luminance, not identity
+    // comparison — the palette may change, this must not.
+    return if (c.background.luminance() > 0.5f) lightColorScheme(
         primary = c.accent,
         onPrimary = c.accentForeground,
         background = c.background,
@@ -124,3 +181,4 @@ fun kineticMaterialScheme(c: KineticColors): ColorScheme =
         outline = c.border,
         error = c.statusError,
     )
+}

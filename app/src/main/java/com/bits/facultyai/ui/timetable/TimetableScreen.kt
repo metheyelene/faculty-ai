@@ -192,7 +192,7 @@ private fun ClassCard(
         isPast -> k.mutedForeground
         else -> k.foreground
     }
-    // Current class: solid accent (yellow + black text). Upcoming: normal
+    // Current class: solid accent (purple + white text). Upcoming: normal
     // glass. Completed: muted glass. Spec-mandated, no exceptions.
     val cellModifier = Modifier
         .fillMaxWidth()
