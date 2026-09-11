@@ -18,9 +18,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
-/** Which cohort of events is shown. */
-enum class EventFilter { ALL, UPCOMING, PAST, THIS_MONTH, THIS_YEAR }
-
 class EventsViewModel(application: Application) : AndroidViewModel(application) {
     private val dao = FacultyDatabase.get(application).facultyDao()
     val media = EventMedia(application, dao)
@@ -41,22 +38,11 @@ class EventsViewModel(application: Application) : AndroidViewModel(application) 
         .map { rows -> rows.associate { it.eventId to it.totalPaisa } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
-    /** Filtered + searched event list; date math is done on real ISO dates. */
+    /** Filtered + searched event list; date math delegates to the tested predicate. */
     val events: StateFlow<List<EventEntity>> = combine(allEvents, searchQuery, selectedFilter) { list, q, filter ->
         val today = LocalDate.now()
         list.filter { e ->
-            val passesFilter = when (filter) {
-                EventFilter.ALL -> true
-                EventFilter.UPCOMING -> runCatching { LocalDate.parse(e.date) >= today }.getOrDefault(false)
-                EventFilter.PAST -> runCatching { LocalDate.parse(e.date) < today }.getOrDefault(false)
-                EventFilter.THIS_MONTH -> runCatching {
-                    val d = LocalDate.parse(e.date); d.year == today.year && d.month == today.month
-                }.getOrDefault(false)
-                EventFilter.THIS_YEAR -> runCatching {
-                    LocalDate.parse(e.date).year == today.year
-                }.getOrDefault(false)
-            }
-            if (!passesFilter) return@filter false
+            if (!EventFormat.passesFilter(e.date, filter, today)) return@filter false
             if (q.isBlank()) return@filter true
             val needle = q.trim().lowercase()
             listOf(e.name, e.venue, e.category, e.department, e.organizer, e.date)

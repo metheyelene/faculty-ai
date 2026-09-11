@@ -5,6 +5,9 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
+/** Which cohort of events is shown on the list screen. */
+enum class EventFilter { ALL, UPCOMING, PAST, THIS_MONTH, THIS_YEAR }
+
 /**
  * Event-finance presentation helpers. Money is stored in paise (Long) —
  * formatting happens only at the UI edge, so totals never drift.
@@ -27,12 +30,16 @@ object EventFormat {
 
     fun parse(dateIso: String): LocalDate? = runCatching { LocalDate.parse(dateIso) }.getOrNull()
 
-    /** Indian-format rupee string from paise: 2545900 → "₹25,459". */
+    /** Indian-format rupee string from paise: 2545900 → "₹25,459". Negative balances get a leading minus. */
     fun money(paisa: Long): String {
-        val whole = paisa / 100
-        val paisePart = (paisa % 100).toInt()
-        val sign = if (whole < 0) "-" else ""
-        val digits = kotlin.math.abs(whole).toString()
+        // Work on the absolute value so the sign never lands inside the
+        // digit/paise groups (e.g. -50 paise used to render as "₹0.-50").
+        val negative = paisa < 0
+        val abs = kotlin.math.abs(paisa)
+        val whole = abs / 100
+        val paisePart = (abs % 100).toInt()
+        val sign = if (negative) "-" else ""
+        val digits = whole.toString()
         val grouped = when {
             digits.length <= 3 -> digits
             else -> {
@@ -77,5 +84,49 @@ object EventFormat {
             else -> h
         }
         return h24 * 60 + m
+    }
+
+    /**
+     * Parses a rupee amount typed by the user into exact paise — integer
+     * math only, never Double, so values like 18450.10 or 0.99 cannot drift
+     * by a paise. Accepts Indian comma grouping and an optional ₹ prefix.
+     * Returns null for anything malformed (the editor treats null as a
+     * validation error, not a guess).
+     */
+    fun paisaFromRupees(raw: String): Long? {
+        val cleaned = raw.trim().removePrefix("₹").replace(",", "").trim()
+        if (cleaned.isEmpty()) return null
+        val parts = cleaned.split(".")
+        if (parts.size > 2) return null
+        val rupees = parts[0]
+        if (rupees.isEmpty() || rupees.length > 12 || rupees.any { !it.isDigit() }) return null
+        val whole = rupees.toLongOrNull() ?: return null
+        val paise = when (parts.size) {
+            1 -> 0L
+            2 -> {
+                val frac = parts[1]
+                when {
+                    // A lone trailing point ("25000.") means whole rupees.
+                    frac.isEmpty() -> 0L
+                    frac.length > 2 -> return null
+                    frac.length == 1 -> frac.toLong() * 10
+                    else -> frac.toLong()
+                }
+            }
+            else -> return null
+        }
+        return whole * 100 + paise
+    }
+
+    /** Pure date-window predicate behind the list filters — inject [today] for tests. */
+    fun passesFilter(dateIso: String, filter: EventFilter, today: LocalDate): Boolean {
+        val d = parse(dateIso) ?: return false
+        return when (filter) {
+            EventFilter.ALL -> true
+            EventFilter.UPCOMING -> d >= today
+            EventFilter.PAST -> d < today
+            EventFilter.THIS_MONTH -> d.year == today.year && d.month == today.month
+            EventFilter.THIS_YEAR -> d.year == today.year
+        }
     }
 }

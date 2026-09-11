@@ -867,7 +867,7 @@ private fun ExpenseEditorDialog(
     var notes by remember { mutableStateOf(existing?.notes ?: "") }
     var showErrors by remember { mutableStateOf(false) }
 
-    val amountPaisa = amountText.replace(",", "").toDoubleOrNull()?.let { (it * 100).toLong() }
+    val amountPaisa = EventFormat.paisaFromRupees(amountText)
     val titleError = showErrors && title.isBlank()
     val amountError = showErrors && (amountPaisa == null || amountPaisa <= 0)
     val dateBad = EventFormat.parse(dateText) == null
@@ -1012,7 +1012,7 @@ private fun CollectionEditorDialog(
     var notes by remember { mutableStateOf(existing?.notes ?: "") }
     var showErrors by remember { mutableStateOf(false) }
 
-    val amountPaisa = amountText.replace(",", "").toDoubleOrNull()?.let { (it * 100).toLong() }
+    val amountPaisa = EventFormat.paisaFromRupees(amountText)
     val sourceError = showErrors && source.isBlank()
     val amountError = showErrors && (amountPaisa == null || amountPaisa <= 0)
     val dateBad = EventFormat.parse(dateText) == null
