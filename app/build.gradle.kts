@@ -1,17 +1,23 @@
 import java.util.Properties
 
+// Firebase config is intentionally not committed (it carries project
+// identifiers): local builds read app/google-services.json from disk, CI
+// injects it from the GOOGLE_SERVICES_JSON secret. The google-services plugin
+// only applies when the config exists, so builds stay green without it and
+// auth simply reports "not configured" at runtime.
+if (file("google-services.json").exists()) {
+    pluginManager.apply("com.google.gms.google-services")
+}
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
-    if (File("google-services.json").exists()) {
-        alias(libs.plugins.google.services)
-    }
+    // google-services is NOT applied here: the config file is not committed,
+    // and the plugins block runs before project layout evaluation. It is
+    // conditionally applied below via `pluginManager.apply`.
 }
-
-// Whether Firebase config is present (drives a build warning below).
-val googleServicesJson = File("google-services.json").exists()
 
 // Firebase config (google-services.json) is intentionally not committed: CI
 // supplies it via the GOOGLE_SERVICES_JSON secret, local builds read it from
