@@ -60,7 +60,7 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val id = dao.insertNote(
                 NoteEntity(
-                    title = title.ifBlank { "Untitled note" },
+                    title = title.ifBlank { DEFAULT_TITLE },
                     body = "",
                     folder = folder,
                     subject = null,
@@ -74,6 +74,9 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteNote(id: Long) = viewModelScope.launch { dao.deleteNote(id) }
 }
+
+/** Display fallback for notes whose title was never set. */
+const val DEFAULT_TITLE = "Untitled note"
 
 /** One row of the notes list: the note plus derived attachment state. */
 data class NoteUi(

@@ -139,7 +139,7 @@ class NoteEditorViewModel(savedStateHandle: SavedStateHandle, application: Appli
                 if (existing != null) {
                     dao.updateNote(
                         existing.copy(
-                            title = title.ifBlank { "Untitled note" },
+                            title = title.ifBlank { DEFAULT_TITLE },
                             body = body,
                             updatedAt = System.currentTimeMillis(),
                         )
@@ -150,7 +150,7 @@ class NoteEditorViewModel(savedStateHandle: SavedStateHandle, application: Appli
                     createdId = dao.insertNote(
                         NoteEntity(
                             id = targetId,
-                            title = title.ifBlank { "Untitled note" },
+                            title = title.ifBlank { DEFAULT_TITLE },
                             body = body,
                             folder = "LECTURES",
                             subject = null,
@@ -162,7 +162,7 @@ class NoteEditorViewModel(savedStateHandle: SavedStateHandle, application: Appli
             } else {
                 createdId = dao.insertNote(
                     NoteEntity(
-                        title = title.ifBlank { "Untitled note" },
+                        title = title.ifBlank { DEFAULT_TITLE },
                         body = body,
                         folder = "LECTURES",
                         subject = null,
@@ -211,7 +211,7 @@ fun NoteEditorScreen(
     val attachments by vm.attachmentList.collectAsStateWithLifecycle()
     val subjectOptions by vm.subjectOptions.collectAsStateWithLifecycle()
 
-    var title by remember(note) { mutableStateOf(note?.title ?: "") }
+    var title by remember(note) { mutableStateOf(note?.title?.takeUnless { it == DEFAULT_TITLE } ?: "") }
     var body by remember(note) { mutableStateOf(note?.body ?: "") }
     var lastEdit by remember { mutableStateOf(0L) }
     var renaming by remember { mutableStateOf<NoteAttachmentEntity?>(null) }

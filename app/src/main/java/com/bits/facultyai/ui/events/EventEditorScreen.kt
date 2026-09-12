@@ -143,6 +143,15 @@ fun EventEditorScreen(
     var notes by remember(existing) { mutableStateOf(existing?.notes ?: "") }
     var showErrors by remember { mutableStateOf(false) }
 
+    // Data-loss guard: leaving with content in a not-yet-saved form asks first.
+    val isDirty = name.isNotBlank() || venue.isNotBlank() || description.isNotBlank() ||
+        organizer.isNotBlank() || department.isNotBlank() || participants.isNotBlank() || notes.isNotBlank()
+    var confirmDiscard by remember { mutableStateOf(false) }
+    val requestBack = {
+        if (isDirty && confirmDiscard.not() && vm.eventId == 0L) confirmDiscard = true else onBack()
+        Unit
+    }
+
     val parsedDate = EventFormat.parse(dateText)
     val startMinutes = EventFormat.timeToMinutes(startText)
     val endMinutes = EventFormat.timeToMinutes(endText)
@@ -161,7 +170,7 @@ fun EventEditorScreen(
     ) {
         GlassTopBar(
             title = if (vm.eventId > 0) "EDIT EVENT" else "NEW EVENT",
-            onBack = onBack,
+            onBack = { requestBack() },
         )
         Spacer(Modifier.height(KineticSpacing.md))
 
@@ -242,5 +251,28 @@ fun EventEditorScreen(
             },
         )
         Spacer(Modifier.height(KineticSpacing.xl))
+    }
+
+    if (confirmDiscard) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmDiscard = false },
+            title = { Text("DISCARD EVENT?", style = KineticType.heading) },
+            text = {
+                Text(
+                    "You haven't saved this event yet. Leaving now discards everything you typed.",
+                    style = KineticType.body,
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = onBack) {
+                    Text("DISCARD", color = k.statusError)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { confirmDiscard = false }) {
+                    Text("KEEP EDITING", color = k.accent)
+                }
+            },
+        )
     }
 }

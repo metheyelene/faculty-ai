@@ -81,6 +81,13 @@ sealed interface AuthResult {
 
 internal fun mapAuthError(e: Throwable): AuthError = when {
     e is AuthError -> e
+    e.message?.let {
+        it.contains("OPERATION_NOT_ALLOWED") ||
+            it.contains("sign-in provider is disabled", ignoreCase = true) ||
+            it.contains("configuration is not supported", ignoreCase = true)
+    } == true -> AuthError.General(
+        "Email sign-in isn't enabled for this Firebase project yet",
+    )
     e is com.google.firebase.FirebaseNetworkException || e is IOException -> AuthError.NoNetwork()
     e is FirebaseAuthInvalidUserException || e is FirebaseAuthInvalidCredentialsException ->
         AuthError.InvalidCredentials()
