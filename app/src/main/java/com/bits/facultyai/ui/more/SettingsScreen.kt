@@ -28,6 +28,8 @@ import com.bits.facultyai.ui.components.KineticButton
 import com.bits.facultyai.ui.components.KineticDisplayText
 import com.bits.facultyai.data.auth.AuthRepository
 import com.bits.facultyai.data.auth.FirebaseAuthSource
+import com.bits.facultyai.data.sync.SyncEngine
+import com.bits.facultyai.data.sync.SyncStatus
 import com.bits.facultyai.ui.components.KineticGhostButton
 import com.bits.facultyai.ui.components.KineticOutlinedButton
 import com.bits.facultyai.ui.components.KineticSectionHeader
@@ -46,16 +48,31 @@ import kotlinx.coroutines.launch
 // an (Application) constructor, which crashed the screen on open in release.
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val settingsRepo = SettingsRepository(application)
-    private val dao = FacultyDatabase.get(application).facultyDao()
+    private val db = FacultyDatabase.get(application)
+    private val dao = db.facultyDao()
+    private val syncEngine = SyncEngine.get(application)
 
     val settings: StateFlow<AppSettings?> = settingsRepo.settings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    /** Live sync status for the Settings row. */
+    val syncStatus: StateFlow<SyncStatus> = syncEngine.status
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SyncStatus.Idle)
+
+    /** True when signed in (sync UI is meaningless in guest mode). */
+    val signedIn: StateFlow<Boolean> = syncEngine.signedIn
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { settingsRepo.setThemeMode(mode) }
     fun setGreetingStyle(style: Int) = viewModelScope.launch { settingsRepo.setGreetingStyle(style) }
 
+    fun syncNow() = viewModelScope.launch { syncEngine.syncNow() }
+
     /** Erases all user content. The app starts empty — no demo data is restored. */
     fun resetData() = viewModelScope.launch {
+        // Signed in: tombstone cloud-known rows first so the reset erases the
+        // account's cloud home too and no pull can resurrect the erased data.
+        syncEngine.enqueueTombstonesForAllUserData()
         dao.clearTimetable()
         dao.clearTimetableVersions()
         dao.clearTasks()
@@ -68,6 +85,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         dao.clearEventPhotos()
         dao.clearEventExpenses()
         dao.clearEventCollections()
+        dao.clearEvents()
+        // Drain runs right away (engine debounces) — the reset propagates.
+        syncEngine.syncNow()
     }
 
     /**
@@ -76,8 +96,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
      * local data, so a different account never sees the previous one's data.
      */
     fun signOut() = viewModelScope.launch {
+        syncEngine.signOut()
         AuthRepository(getApplication(), FirebaseAuthSource()).signOut()
-        resetData()
+        // No other account may ever see this one's data on this device.
+        db.clearAllUserData()
         settingsRepo.setGuestMode(false)
     }
 }
@@ -154,6 +176,29 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel()) {
         }
 
         Spacer(Modifier.height(KineticSpacing.lg))
+
+        // ---- SYNC (visible only when signed in) ----
+        val syncStatus by vm.syncStatus.collectAsStateWithLifecycle()
+        val signedIn by vm.signedIn.collectAsStateWithLifecycle()
+        if (signedIn) {
+            KineticSectionHeader(title = "SYNC")
+            Text(
+                text = when (val s = syncStatus) {
+                    is SyncStatus.Synced ->
+                        "All changes saved to your account · " +
+                            java.text.SimpleDateFormat("d MMM, HH:mm", java.util.Locale.getDefault())
+                                .format(java.util.Date(s.at))
+                    SyncStatus.Syncing -> "Syncing…"
+                    is SyncStatus.Error -> s.message
+                    SyncStatus.Idle -> "Signed in — changes sync automatically"
+                },
+                style = KineticType.label.copy(fontSize = 12.sp),
+                color = if (syncStatus is SyncStatus.Error) k.statusError else k.mutedForeground,
+            )
+            Spacer(Modifier.height(KineticSpacing.sm))
+            KineticGhostButton(text = "SYNC NOW", onClick = { vm.syncNow() })
+            Spacer(Modifier.height(KineticSpacing.lg))
+        }
 
         KineticSectionHeader(title = "ACCOUNT")
         KineticOutlinedButton(

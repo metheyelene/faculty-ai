@@ -202,7 +202,9 @@ class MonthlyImportViewModel(
                     val conflictKeys = current.conflicts.map { it.mark.studentId to it.mark.dateIso }.toHashSet()
                     if (policy == ConflictPolicy.UPDATE) {
                         current.conflicts.forEach { c ->
-                            dao.updateAttendanceEntryStatus(c.existingRecordId, c.mark.studentId, c.mark.status)
+                            val conflictNow = System.currentTimeMillis()
+                            dao.updateAttendanceEntryStatus(c.existingRecordId, c.mark.studentId, c.mark.status, conflictNow)
+                            dao.touchRecordCurrency(c.existingRecordId, conflictNow)
                             updated++
                         }
                     } else {
@@ -218,6 +220,7 @@ class MonthlyImportViewModel(
                             AttendanceExcelParser.Status.LATE -> late++
                             AttendanceExcelParser.Status.EXCUSED -> excused++
                         }
+                        val now = System.currentTimeMillis()
                         val recordId = dao.insertAttendanceRecord(
                             AttendanceRecordEntity(
                                 classSlotId = 0L, // import sessions are not tied to a timetable slot
@@ -230,6 +233,7 @@ class MonthlyImportViewModel(
                                 absentCount = absent,
                                 lateCount = late,
                                 excusedCount = excused,
+                                updatedAt = now,
                             ),
                         )
                         dao.insertAttendanceEntries(
@@ -238,6 +242,7 @@ class MonthlyImportViewModel(
                                     recordId = recordId,
                                     studentId = m.studentId,
                                     status = m.status,
+                                    updatedAt = now,
                                 )
                             },
                         )

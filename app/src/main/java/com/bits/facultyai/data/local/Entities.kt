@@ -46,6 +46,8 @@ data class ClassSlotEntity(
     val section: String,
     val room: String,
     val year: Int = 1, // academic year (1..4) this class is taught to
+    val uuid: String = "", // sync identity; assigned by SyncEngine before cloud write
+    val updatedAt: Long = 0, // last local mutation (ms); sync currency
 )
 
 /**
@@ -96,6 +98,9 @@ data class AttendanceRecordEntity(
     val absentCount: Int,
     val lateCount: Int,
     val excusedCount: Int = 0, // added in v8 for monthly attendance (E status)
+    val uuid: String = "", // sync identity
+    val slotUuid: String = "", // parent slot's sync identity (stable across devices)
+    val updatedAt: Long = 0, // sync currency
 )
 
 /**
@@ -110,6 +115,10 @@ data class AttendanceEntryEntity(
     val recordId: Long,
     val studentId: Long,
     val status: String, // PRESENT | ABSENT | LATE | EXCUSED
+    val uuid: String = "", // sync identity
+    val recordUuid: String = "", // parent session's sync identity
+    val studentUuid: String = "", // roster student's sync identity
+    val updatedAt: Long = 0, // sync currency
 )
 
 /** Flat entry + its session's date/subject — the monthly day-by-day detail rows. Room projection POJO. */
@@ -140,6 +149,8 @@ data class StudentEntity(
     val email: String = "",
     val phone: String = "",
     val degree: String = "",
+    val uuid: String = "", // sync identity; backfilled by SyncEngine for legacy rows
+    val updatedAt: Long = 0, // sync currency
 )
 
 /**
@@ -325,4 +336,31 @@ data class EventCollectionEntity(
     val createdAt: Long = 0L,
     val updatedAt: Long = 0L,
     val syncState: String = "PENDING_SYNC",
+)
+
+/**
+ * A delete waiting to propagate to the cloud. UI deletes enqueue here (and
+ * still delete locally immediately); [com.bits.facultyai.data.sync.SyncEngine]
+ * drains the outbox to Firestore and clears it. UI-facing tables carry no
+ * tombstone flags — this is the only deletion ledger in the app.
+ */
+@Entity(tableName = "pending_deletion")
+data class PendingDeletionEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    /** "slot" | "student" | "record" | "entry" */
+    val entityType: String,
+    val uuid: String,
+    val requestedAt: Long,
+)
+
+/** Per-uid sync bookkeeping (watermarks, one-shot backfill flag). Engine-owned. */
+@Entity(tableName = "sync_meta")
+data class SyncMetaEntity(
+    @PrimaryKey val uid: String,
+    val backfillDone: Boolean = false,
+    val wmSlot: Long = 0,
+    val wmStudent: Long = 0,
+    val wmRecord: Long = 0,
+    val wmEntry: Long = 0,
+    val wmTombstone: Long = 0,
 )

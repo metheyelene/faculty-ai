@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.bits.facultyai.data.local.ClassSlotEntity
 import com.bits.facultyai.data.local.FacultyDatabase
+import com.bits.facultyai.data.local.PendingDeletionEntity
 import com.bits.facultyai.data.local.TimetableVersionEntity
 import com.bits.facultyai.domain.StudentExcelParser
 import com.bits.facultyai.domain.TimeUtils
@@ -25,7 +26,9 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 class TimetableViewModel(application: Application) : AndroidViewModel(application) {
-    private val dao = FacultyDatabase.get(application).facultyDao()
+    private val db = FacultyDatabase.get(application)
+    private val dao = db.facultyDao()
+    private val syncDao = db.syncDao()
 
     val timetable = dao.observeTimetable()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -211,19 +214,30 @@ class TimetableViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun addSlot(slot: ClassSlotEntity) = viewModelScope.launch {
         if (dao.countOverlapping(slot.dayOfWeek, slot.startTimeMinutes, slot.endTimeMinutes) == 0) {
-            dao.insertClassSlot(slot)
+            dao.insertClassSlot(slot.copy(updatedAt = System.currentTimeMillis()))
             SyncScheduler.syncTimetableReminders(getApplication())
         }
     }
 
     fun updateSlot(slot: ClassSlotEntity) = viewModelScope.launch {
         if (dao.countOverlapping(slot.dayOfWeek, slot.startTimeMinutes, slot.endTimeMinutes, excludeId = slot.id) == 0) {
-            dao.updateClassSlot(slot)
+            dao.updateClassSlot(slot.copy(updatedAt = System.currentTimeMillis()))
             SyncScheduler.syncTimetableReminders(getApplication())
         }
     }
 
     fun deleteSlot(id: Long) = viewModelScope.launch {
+        dao.getTimetable().find { it.id == id }?.let { slot ->
+            if (slot.uuid.isNotBlank()) {
+                syncDao.insertDeletion(
+                    PendingDeletionEntity(
+                        entityType = "slot",
+                        uuid = slot.uuid,
+                        requestedAt = System.currentTimeMillis(),
+                    )
+                )
+            }
+        }
         dao.deleteClassSlot(id)
         SyncScheduler.syncTimetableReminders(getApplication())
     }

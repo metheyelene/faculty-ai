@@ -25,6 +25,31 @@ the one-time console steps and how the config reaches builds.
    repository secret named `GOOGLE_SERVICES_JSON`.
 4. **Enable sign-in providers**: Firebase console → Authentication →
    Sign-in method → enable **Email/Password** and **Google**.
+5. **Create the Firestore database**: Firebase console → Firestore Database →
+   Create database → production mode → pick a region. Then deploy the
+   committed rules from the repo root:
+
+   ```bash
+   firebase deploy --only firestore:rules
+   ```
+
+   `firestore.rules` gives every account a private island at `users/{uid}/…` —
+   no document is world-readable, and a tampered client cannot read another
+   user's data.
+
+## How sync works
+
+- **Room stays the source of truth.** The cloud mirrors three aggregates:
+  `users/{uid}/slots`, `users/{uid}/students`, and `users/{uid}/sessions`
+  (each session embeds its attendance entries). Deletions travel as tombstones
+  under `users/{uid}/tombstones`.
+- **Conflict rule: last-write-wins** on each row's `updatedAt`. A row edited
+  after a delete was requested survives the tombstone (and re-pushes).
+- **Second device** pulls the account's data at sign-in; local writes push
+  automatically (debounced). Sign-out and account switches wipe local data so
+  accounts never mix on one install.
+- **Requires the providers step**: if Email/Password isn't enabled, sign-in
+  can't happen — and sync only runs for signed-in accounts.
 
 ## Why both SHA-1s
 

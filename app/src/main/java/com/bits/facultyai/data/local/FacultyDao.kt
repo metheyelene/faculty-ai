@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -26,6 +27,13 @@ interface FacultyDao {
 
     @Query("SELECT * FROM class_slot ORDER BY dayOfWeek, startTimeMinutes")
     suspend fun getTimetable(): List<ClassSlotEntity>
+
+    /** Sync reads: every row, including those from other devices (uuid-keyed). */
+    @Query("SELECT * FROM class_slot")
+    suspend fun getAllSlotsForSync(): List<ClassSlotEntity>
+
+    @Query("SELECT * FROM class_slot WHERE uuid = :uuid LIMIT 1")
+    suspend fun findSlotByUuid(uuid: String): ClassSlotEntity?
 
     @Insert
     suspend fun insertClassSlot(slot: ClassSlotEntity): Long
@@ -120,8 +128,11 @@ interface FacultyDao {
     @Query("UPDATE attendance_record SET presentCount = :present, absentCount = :absent, lateCount = :late, excusedCount = :excused WHERE id = :id")
     suspend fun updateAttendanceRecordCounts(id: Long, present: Int, absent: Int, late: Int, excused: Int)
 
-    @Query("UPDATE attendance_entry SET status = :status WHERE recordId = :recordId AND studentId = :studentId")
-    suspend fun updateAttendanceEntryStatus(recordId: Long, studentId: Long, status: String)
+    @Query("UPDATE attendance_entry SET status = :status, updatedAt = :now WHERE recordId = :recordId AND studentId = :studentId")
+    suspend fun updateAttendanceEntryStatus(recordId: Long, studentId: Long, status: String, now: Long)
+
+    @Query("UPDATE attendance_record SET updatedAt = :now WHERE id = :recordId")
+    suspend fun touchRecordCurrency(recordId: Long, now: Long)
 
     @Query("DELETE FROM attendance_entry WHERE recordId = :recordId AND studentId = :studentId")
     suspend fun deleteAttendanceEntry(recordId: Long, studentId: Long)
@@ -259,6 +270,13 @@ interface FacultyDao {
     @Query("SELECT * FROM student")
     suspend fun getStudents(): List<StudentEntity>
 
+    /** Sync reads: full set for cloud reconcile, plus uuid lookup. */
+    @Query("SELECT * FROM student")
+    suspend fun getAllStudentsForSync(): List<StudentEntity>
+
+    @Query("SELECT * FROM student WHERE uuid = :uuid LIMIT 1")
+    suspend fun findStudentByUuid(uuid: String): StudentEntity?
+
     @Query("SELECT * FROM academic_event")
     suspend fun getAcademicEvents(): List<AcademicEventEntity>
 
@@ -280,6 +298,88 @@ interface FacultyDao {
 
     @Query("DELETE FROM memory")
     suspend fun clearMemories()
+
+    // ---- sync: full-set reads + uuid lookups (engine-only) ----
+
+    @Query("SELECT * FROM attendance_record")
+    suspend fun getAllRecordsForSync(): List<AttendanceRecordEntity>
+
+    @Query("SELECT * FROM attendance_entry")
+    suspend fun getAllEntriesForSync(): List<AttendanceEntryEntity>
+
+    @Query("SELECT * FROM attendance_record WHERE uuid = :uuid LIMIT 1")
+    suspend fun findRecordByUuid(uuid: String): AttendanceRecordEntity?
+
+    @Query("SELECT * FROM attendance_entry WHERE uuid = :uuid LIMIT 1")
+    suspend fun findEntryByUuid(uuid: String): AttendanceEntryEntity?
+
+    @Query("SELECT * FROM attendance_entry WHERE recordId = :recordId")
+    suspend fun getEntriesForRecordSync(recordId: Long): List<AttendanceEntryEntity>
+
+    @Query("DELETE FROM attendance_entry WHERE uuid = :uuid")
+    suspend fun deleteEntryByUuid(uuid: String)
+
+    @Query("DELETE FROM attendance_record WHERE uuid = :uuid")
+    suspend fun deleteRecordByUuid(uuid: String)
+
+    @Query("DELETE FROM class_slot WHERE uuid = :uuid")
+    suspend fun deleteSlotByUuid(uuid: String)
+
+    @Query("DELETE FROM student WHERE uuid = :uuid")
+    suspend fun deleteStudentByUuid(uuid: String)
+
+    // ---- sync upserts (engine-only; rows carry uuid + updatedAt from the wire) ----
+
+    @Upsert
+    suspend fun upsertSlot(slot: ClassSlotEntity): Long
+
+    @Upsert
+    suspend fun upsertStudent(student: StudentEntity): Long
+
+    @Upsert
+    suspend fun upsertRecord(record: AttendanceRecordEntity): Long
+
+    @Upsert
+    suspend fun upsertEntry(entry: AttendanceEntryEntity): Long
+
+    @Query("UPDATE attendance_entry SET status = :status, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun updateEntryById(id: Long, status: String, updatedAt: Long)
+
+    /** One-shot legacy stamp: give un-stamped rows a sync currency so they enter the push outbox. */
+    @Query("UPDATE class_slot SET updatedAt = :now WHERE updatedAt = 0")
+    suspend fun stampLegacySlots(now: Long): Int
+
+    @Query("UPDATE student SET updatedAt = :now WHERE updatedAt = 0")
+    suspend fun stampLegacyStudents(now: Long): Int
+
+    @Query("UPDATE attendance_record SET updatedAt = :now WHERE updatedAt = 0")
+    suspend fun stampLegacyRecords(now: Long): Int
+
+    @Query("UPDATE attendance_entry SET updatedAt = :now WHERE updatedAt = 0")
+    suspend fun stampLegacyEntries(now: Long): Int
+
+    /** Push outbox: dirty = never pushed (no uuid) or mutated since the last push. */
+    @Query("SELECT * FROM class_slot WHERE uuid = '' OR updatedAt > :watermark")
+    suspend fun dirtySlots(watermark: Long): List<ClassSlotEntity>
+
+    @Query("SELECT * FROM student WHERE uuid = '' OR updatedAt > :watermark")
+    suspend fun dirtyStudents(watermark: Long): List<StudentEntity>
+
+    @Query("SELECT * FROM attendance_record WHERE uuid = '' OR updatedAt > :watermark")
+    suspend fun dirtyRecords(watermark: Long): List<AttendanceRecordEntity>
+
+    @Query("SELECT * FROM attendance_entry WHERE uuid = '' OR updatedAt > :watermark")
+    suspend fun dirtyEntries(watermark: Long): List<AttendanceEntryEntity>
+
+    /** Bulk uuid backfill for legacy rows (engine-only, idempotent). */
+    @Query("UPDATE attendance_record SET slotUuid = (SELECT uuid FROM class_slot WHERE class_slot.id = attendance_record.classSlotId) WHERE slotUuid = ''")
+    suspend fun backfillRecordSlotUuids()
+
+    @Query("UPDATE attendance_entry SET recordUuid = (SELECT uuid FROM attendance_record WHERE attendance_record.id = attendance_entry.recordId) WHERE recordUuid = ''")
+    suspend fun backfillEntryRecordUuids()
+
+    @Query("UPDATE attendance_entry SET studentUuid = (SELECT uuid FROM student WHERE student.id = attendance_entry.studentId) WHERE studentUuid = ''")
+    suspend fun backfillEntryStudentUuids()
 
     // ---- Events ----
     @Query("SELECT * FROM event ORDER BY date DESC, startTimeMinutes DESC")
@@ -406,6 +506,9 @@ interface FacultyDao {
 
     @Query("DELETE FROM event_photo")
     suspend fun clearEventPhotos()
+
+    @Query("DELETE FROM event")
+    suspend fun clearEvents()
 
     @Query("DELETE FROM event_expense")
     suspend fun clearEventExpenses()

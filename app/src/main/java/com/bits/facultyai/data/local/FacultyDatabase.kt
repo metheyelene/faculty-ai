@@ -5,6 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
+import androidx.room.withTransaction
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
@@ -24,12 +25,38 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         EventPhotoEntity::class,
         EventExpenseEntity::class,
         EventCollectionEntity::class,
+        PendingDeletionEntity::class,
+        SyncMetaEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = false,
 )
 abstract class FacultyDatabase : RoomDatabase() {
     abstract fun facultyDao(): FacultyDao
+    abstract fun syncDao(): SyncDao
+
+    /**
+     * Wipes every account-owned table in one transaction — used by the
+     * SyncEngine when a different account signs in on this install, so no
+     * data from user A can ever surface under user B.
+     */
+    suspend fun clearAllUserData() = withTransaction {
+        facultyDao().clearTimetable()
+        facultyDao().clearTimetableVersions()
+        facultyDao().clearStudents()
+        facultyDao().clearAttendance()
+        facultyDao().clearAttendanceEntries()
+        facultyDao().clearNotes()
+        facultyDao().clearTasks()
+        facultyDao().clearMemories()
+        facultyDao().clearAcademicEvents()
+        facultyDao().clearEventPhotos()
+        facultyDao().clearEventExpenses()
+        facultyDao().clearEventCollections()
+        facultyDao().clearEvents()
+        syncDao().clearDeletions()
+        syncDao().clearMeta()
+    }
 
     companion object {
         @Volatile
@@ -52,6 +79,29 @@ abstract class FacultyDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE `task` ADD COLUMN `category` TEXT NOT NULL DEFAULT 'GENERAL'")
                 db.execSQL("ALTER TABLE `task` ADD COLUMN `recurrence` TEXT NOT NULL DEFAULT 'NONE'")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_academic_event_date` ON `academic_event` (`date`)")
+            }
+        }
+
+        /** v8 -> v9: Firestore sync identity — uuid business keys + deletion outbox. Guarded, additive. */
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "class_slot", "uuid", "ALTER TABLE `class_slot` ADD COLUMN `uuid` TEXT NOT NULL DEFAULT ''")
+                addColumnIfMissing(db, "class_slot", "updatedAt", "ALTER TABLE `class_slot` ADD COLUMN `updatedAt` INTEGER NOT NULL DEFAULT 0")
+                addColumnIfMissing(db, "student", "uuid", "ALTER TABLE `student` ADD COLUMN `uuid` TEXT NOT NULL DEFAULT ''")
+                addColumnIfMissing(db, "student", "updatedAt", "ALTER TABLE `student` ADD COLUMN `updatedAt` INTEGER NOT NULL DEFAULT 0")
+                addColumnIfMissing(db, "attendance_record", "uuid", "ALTER TABLE `attendance_record` ADD COLUMN `uuid` TEXT NOT NULL DEFAULT ''")
+                addColumnIfMissing(db, "attendance_record", "slotUuid", "ALTER TABLE `attendance_record` ADD COLUMN `slotUuid` TEXT NOT NULL DEFAULT ''")
+                addColumnIfMissing(db, "attendance_record", "updatedAt", "ALTER TABLE `attendance_record` ADD COLUMN `updatedAt` INTEGER NOT NULL DEFAULT 0")
+                addColumnIfMissing(db, "attendance_entry", "uuid", "ALTER TABLE `attendance_entry` ADD COLUMN `uuid` TEXT NOT NULL DEFAULT ''")
+                addColumnIfMissing(db, "attendance_entry", "recordUuid", "ALTER TABLE `attendance_entry` ADD COLUMN `recordUuid` TEXT NOT NULL DEFAULT ''")
+                addColumnIfMissing(db, "attendance_entry", "studentUuid", "ALTER TABLE `attendance_entry` ADD COLUMN `studentUuid` TEXT NOT NULL DEFAULT ''")
+                addColumnIfMissing(db, "attendance_entry", "updatedAt", "ALTER TABLE `attendance_entry` ADD COLUMN `updatedAt` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `pending_deletion` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `entityType` TEXT NOT NULL, `uuid` TEXT NOT NULL, `requestedAt` INTEGER NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `sync_meta` (`uid` TEXT NOT NULL, `backfillDone` INTEGER NOT NULL, `wmSlot` INTEGER NOT NULL DEFAULT 0, `wmStudent` INTEGER NOT NULL DEFAULT 0, `wmRecord` INTEGER NOT NULL DEFAULT 0, `wmEntry` INTEGER NOT NULL DEFAULT 0, `wmTombstone` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`uid`))"
+                )
             }
         }
 
@@ -208,7 +258,7 @@ abstract class FacultyDatabase : RoomDatabase() {
                     FacultyDatabase::class.java,
                     "faculty_ai.db",
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                     .build()
                     .also { instance = it }
             }

@@ -1,0 +1,105 @@
+rules_version = '2';
+
+// Acadora sync — every user's data lives in an isolated island under their
+// auth UID. No document is world-readable; nothing is writable without a
+// verified session. The SyncEngine is the only client writer, and these rules
+// keep even a tampered client inside its own island.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // Payload sanity: bounded size, required sync currency, no server-side
+    // identity fields a client could spoof. `updatedAt` drives last-write-wins.
+    function validSyncDoc(data) {
+      return signedIn()
+        && data.keys().hasOnly(['subject', 'section', 'date', 'year', 'markedAt',
+            'presentCount', 'absentCount', 'lateCount', 'excusedCount', 'slotUuid',
+            'dayOfWeek', 'startTimeMinutes', 'endTimeMinutes', 'room',
+            'rollNumber', 'name', 'registrationNumber', 'email', 'phone', 'degree',
+            'updatedAt', 'entries'])
+        && data.updatedAt is number;
+    }
+
+    // Sanity for the per-account marker the engine touches each sync.
+    function validAccountDoc(data) {
+      return signedIn() && data.keys().hasOnly(['lastSyncAt']) && data.lastSyncAt is number;
+    }
+
+    // Deletion ledger: which uuid was removed, from which table, when.
+    function validTombstone(data) {
+      return signedIn()
+        && data.keys().hasOnly(['table', 'deletedAt'])
+        && data.table is string
+        && data.table in ['slots', 'students', 'sessions']
+        && data.deletedAt is number;
+    }
+
+    // Embedded attendance entries inside a session aggregate.
+    function validEntries(entries) {
+      return entries is list && entries.size() <= 500
+        && entries.every(e,
+            e.keys().hasOnly(['uuid', 'status', 'studentUuid'])
+            && e.uuid is string && e.uuid.size() <= 64
+            && e.status in ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED']
+            && e.studentUuid is string && e.studentUuid.size() <= 64);
+    }
+
+    match /users/{uid} {
+      allow read, write: if isOwner(uid)
+        && (request.method == 'get' || request.method == 'list' || validAccountDoc(request.resource.data));
+
+      match /slots/{slotId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validSyncDoc(request.resource.data)
+          && request.resource.data.dayOfWeek is int
+          && request.resource.data.dayOfWeek >= 1 && request.resource.data.dayOfWeek <= 7
+          && request.resource.data.startTimeMinutes is int
+          && request.resource.data.endTimeMinutes is int
+          && request.resource.data.subject is string
+          && request.resource.data.subject.size() <= 120;
+        allow delete: if isOwner(uid);
+      }
+
+      match /students/{studentId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validSyncDoc(request.resource.data)
+          && request.resource.data.rollNumber is string
+          && request.resource.data.rollNumber.size() <= 32
+          && request.resource.data.name is string
+          && request.resource.data.name.size() <= 120;
+        allow delete: if isOwner(uid);
+      }
+
+      // One session aggregate = record fields + embedded entries.
+      match /sessions/{sessionId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validSyncDoc(request.resource.data)
+          && request.resource.data.date is string
+          && request.resource.data.date.matches('^\\d{4}-\\d{2}-\\d{2}$')
+          && validEntries(request.resource.data.get('entries', []));
+        allow delete: if isOwner(uid);
+      }
+
+      // Tombstones are append-only ledger entries: create/overwrite allowed,
+      // never deleted (cheap garbage-collect later via console or job).
+      match /tombstones/{tombstoneId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validTombstone(request.resource.data);
+        allow delete: if false;
+      }
+
+      // No other subtree is writable — anything else in a user island is
+      // reserved for future server-owned data.
+      match /{document=**} {
+        allow read, write: if false;
+      }
+    }
+  }
+}

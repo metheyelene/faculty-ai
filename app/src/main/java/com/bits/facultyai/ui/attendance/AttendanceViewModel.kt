@@ -77,6 +77,7 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
     fun saveAttendance(onDone: () -> Unit) {
         val slot = selectedSlot.value ?: return
         viewModelScope.launch {
+            val now = System.currentTimeMillis()
             val recordId = dao.insertAttendanceRecord(
                 AttendanceRecordEntity(
                     classSlotId = slot.id,
@@ -84,16 +85,17 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
                     section = slot.section,
                     date = TimeUtils.isoDate(TimeUtils.today()),
                     year = slot.year,
-                    markedAt = System.currentTimeMillis(),
+                    markedAt = now,
                     presentCount = marks.value.values.count { it == "PRESENT" },
                     absentCount = marks.value.values.count { it == "ABSENT" },
                     lateCount = marks.value.values.count { it == "LATE" },
                     excusedCount = marks.value.values.count { it == "EXCUSED" },
+                    updatedAt = now,
                 )
             )
             dao.insertAttendanceEntries(
                 marks.value.map { (studentId, status) ->
-                    AttendanceEntryEntity(recordId = recordId, studentId = studentId, status = status)
+                    AttendanceEntryEntity(recordId = recordId, studentId = studentId, status = status, updatedAt = now)
                 }
             )
             onDone()

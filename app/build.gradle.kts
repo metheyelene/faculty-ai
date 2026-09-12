@@ -30,8 +30,8 @@ android {
         applicationId = "com.bits.facultyai"
         minSdk = 26
         targetSdk = 35
-        versionCode = 14
-        versionName = "1.5.2"
+        versionCode = 15
+        versionName = "1.6.0"
         vectorDrawables.useSupportLibrary = true
     }
 
@@ -85,6 +85,7 @@ dependencies {
     // runtime if the Firebase config is absent (see FirebaseAuthSource).
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
     // Google Sign-In via Credential Manager (GetGoogleIdOption).
     implementation(libs.credentials)
     implementation(libs.credentials.play.services)

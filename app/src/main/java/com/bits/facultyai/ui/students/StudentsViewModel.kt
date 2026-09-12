@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.bits.facultyai.data.local.FacultyDatabase
+import com.bits.facultyai.data.local.PendingDeletionEntity
 import com.bits.facultyai.data.local.StudentEntity
 import com.bits.facultyai.domain.StudentExcelParser
 import com.bits.facultyai.domain.XlsxReader
@@ -30,7 +31,9 @@ fun Int.ordinalYear(): String = when (this) {
 }
 
 class StudentsViewModel(application: Application) : AndroidViewModel(application) {
-    private val dao = FacultyDatabase.get(application).facultyDao()
+    private val db = FacultyDatabase.get(application)
+    private val dao = db.facultyDao()
+    private val syncDao = db.syncDao()
 
     // ---- navigation + search ----
 
@@ -184,6 +187,7 @@ class StudentsViewModel(application: Application) : AndroidViewModel(application
         import.value = import.value.copy(phase = ImportState.Phase.IMPORTING)
         viewModelScope.launch {
             val duplicates = s.rosterDuplicates
+            val now = System.currentTimeMillis()
             val rows = mutableListOf<StudentEntity>()
             var updated = 0
             preview.valid.forEach { p ->
@@ -197,6 +201,7 @@ class StudentsViewModel(application: Application) : AndroidViewModel(application
                         registrationNumber = p.registrationNumber,
                         email = p.email,
                         phone = p.phone,
+                        updatedAt = now,
                     )
                     s.duplicateChoice == ImportState.DuplicateChoice.UPDATE -> {
                         dao.updateStudent(
@@ -205,6 +210,7 @@ class StudentsViewModel(application: Application) : AndroidViewModel(application
                                 registrationNumber = p.registrationNumber.ifBlank { existing.registrationNumber },
                                 email = p.email.ifBlank { existing.email },
                                 phone = p.phone.ifBlank { existing.phone },
+                                updatedAt = now,
                             )
                         )
                         updated++
@@ -225,7 +231,22 @@ class StudentsViewModel(application: Application) : AndroidViewModel(application
     fun dismissError() { import.value = import.value.copy(phase = ImportState.Phase.IDLE, errorMessage = null) }
 
     fun deleteStudentsFor(year: Int, section: String) {
-        viewModelScope.launch { dao.deleteStudentsFor(year, section) }
+        viewModelScope.launch {
+            // Enqueue cloud tombstones for already-synced students so other
+            // devices learn of the removal; local delete happens immediately.
+            dao.getAllStudentsForSync()
+                .filter { it.year == year && it.section == section && it.uuid.isNotBlank() }
+                .forEach {
+                    syncDao.insertDeletion(
+                        PendingDeletionEntity(
+                            entityType = "student",
+                            uuid = it.uuid,
+                            requestedAt = System.currentTimeMillis(),
+                        )
+                    )
+                }
+            dao.deleteStudentsFor(year, section)
+        }
     }
 
     /** Manual single-student entry — complements the Excel importer. */
@@ -249,6 +270,7 @@ class StudentsViewModel(application: Application) : AndroidViewModel(application
                         section = sec,
                         year = year,
                         registrationNumber = registrationNumber.trim(),
+                        updatedAt = System.currentTimeMillis(),
                     )
                 )
             )
