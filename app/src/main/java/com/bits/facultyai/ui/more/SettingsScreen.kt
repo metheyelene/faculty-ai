@@ -26,6 +26,8 @@ import com.bits.facultyai.data.prefs.SettingsRepository
 import com.bits.facultyai.ui.components.GlassTopBar
 import com.bits.facultyai.ui.components.KineticButton
 import com.bits.facultyai.ui.components.KineticDisplayText
+import com.bits.facultyai.data.auth.AuthRepository
+import com.bits.facultyai.data.auth.FirebaseAuthSource
 import com.bits.facultyai.ui.components.KineticGhostButton
 import com.bits.facultyai.ui.components.KineticOutlinedButton
 import com.bits.facultyai.ui.components.KineticSectionHeader
@@ -63,6 +65,20 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         dao.clearAttendanceEntries()
         dao.clearStudents()
         dao.clearAcademicEvents()
+        dao.clearEventPhotos()
+        dao.clearEventExpenses()
+        dao.clearEventCollections()
+    }
+
+    /**
+     * Signs out: clears auth state (and the Credential Manager state so the
+     * next Google sign-in shows the full chooser) plus all account-owned
+     * local data, so a different account never sees the previous one's data.
+     */
+    fun signOut() = viewModelScope.launch {
+        AuthRepository(getApplication(), FirebaseAuthSource()).signOut()
+        resetData()
+        settingsRepo.setGuestMode(false)
     }
 }
 
@@ -136,6 +152,24 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel()) {
         } else {
             KineticOutlinedButton(text = "RESET APP DATA", onClick = { confirmReset = true })
         }
+
+        Spacer(Modifier.height(KineticSpacing.lg))
+
+        KineticSectionHeader(title = "ACCOUNT")
+        KineticOutlinedButton(
+            text = "SIGN OUT",
+            onClick = {
+                vm.signOut()
+                onBack()
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            text = "Signing out clears this account's data on this device so the " +
+                "next sign-in starts fresh. Your onboarding and theme choices stay.",
+            style = KineticType.label.copy(fontSize = 12.sp),
+            color = k.mutedForeground,
+        )
 
         Spacer(Modifier.height(KineticSpacing.lg))
         Spacer(Modifier.height(KineticSpacing.xl))

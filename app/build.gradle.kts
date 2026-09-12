@@ -5,11 +5,18 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    if (File("google-services.json").exists()) {
+        alias(libs.plugins.google.services)
+    }
 }
 
-// Load signing config from keystore.properties (gitignored). See
-// keystore.properties.example for the expected shape. If the file is missing,
-// release builds still work but produce unsigned artifacts.
+// Whether Firebase config is present (drives a build warning below).
+val googleServicesJson = File("google-services.json").exists()
+
+// Firebase config (google-services.json) is intentionally not committed: CI
+// supplies it via the GOOGLE_SERVICES_JSON secret, local builds read it from
+// disk. Builds stay green without it — the google-services plugin only
+// applies when the config is present.
 val keystoreProperties = Properties().apply {
     val f = rootProject.file("keystore.properties")
     if (f.exists()) f.inputStream().use { load(it) }
@@ -74,7 +81,15 @@ android {
 }
 
 dependencies {
-    // On-device text recognition for timetable photo import (bundled, offline capable)
+    // Auth (Firebase). Auth code is compiled unconditionally but fails fast at
+    // runtime if the Firebase config is absent (see FirebaseAuthSource).
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    // Google Sign-In via Credential Manager (GetGoogleIdOption).
+    implementation(libs.credentials)
+    implementation(libs.credentials.play.services)
+    implementation(libs.play.services.auth)
+    implementation(libs.googleid)
     implementation("com.google.mlkit:text-recognition:16.0.1")
     // Event photos / note attachments image loading.
     implementation("io.coil-kt:coil-compose:2.6.0")

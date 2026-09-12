@@ -24,4 +24,5 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { settingsRepo.setThemeMode(mode) }
     fun setOnboardingComplete() = viewModelScope.launch { settingsRepo.setOnboardingComplete() }
+    fun setGuestMode(enabled: Boolean) = viewModelScope.launch { settingsRepo.setGuestMode(enabled) }
 }

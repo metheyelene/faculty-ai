@@ -8,13 +8,21 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bits.facultyai.notifications.SyncScheduler
 import com.bits.facultyai.ui.AppViewModel
+import com.bits.facultyai.ui.auth.AuthGate
+import com.bits.facultyai.ui.auth.AuthViewModel
+import com.bits.facultyai.ui.auth.LoginScreen
+import com.bits.facultyai.ui.auth.resolveGate
 import com.bits.facultyai.ui.navigation.FacultyAINavHost
+import com.bits.facultyai.ui.splash.KineticSplashLoading
 import com.bits.facultyai.ui.theme.FacultyAITheme
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -40,19 +48,34 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            val vm: AppViewModel = viewModel()
-            val settings by vm.settings.collectAsStateWithLifecycle()
+            val appVm: AppViewModel = viewModel()
+            val settings by appVm.settings.collectAsStateWithLifecycle()
             val deepLink by pendingDeepLink.collectAsStateWithLifecycle()
             val mode = settings?.themeMode ?: com.bits.facultyai.ui.theme.ThemeMode.SYSTEM
+
             FacultyAITheme(mode = mode) {
-                FacultyAINavHost(
-                    settings = settings,
-                    deepLinkRoute = deepLink,
-                    onDeepLinkHandled = { pendingDeepLink.value = null },
-                    onOnboardingComplete = vm::setOnboardingComplete,
-                )
+                val authVm: AuthViewModel = viewModel(factory = AuthViewModel.Factory)
+                val authState by authVm.authState.collectAsStateWithLifecycle()
+                val gate = resolveGate(settings, authState)
+
+                Crossfade(targetState = gate, animationSpec = tween(300), label = "authGate") { g ->
+                    when (g) {
+                        AuthGate.LOADING -> KineticSplashLoading() // themed hold, no flash
+                        AuthGate.LOGIN -> LoginScreen(
+                            vm = authVm,
+                            onGuest = { appVm.setGuestMode(true) },
+                        )
+                        AuthGate.APP -> FacultyAINavHost(
+                            settings = settings,
+                            deepLinkRoute = deepLink,
+                            onDeepLinkHandled = { pendingDeepLink.value = null },
+                            onOnboardingComplete = appVm::setOnboardingComplete,
+                        )
+                    }
+                }
             }
-        }    }
+        }
+    }
 
     override fun onNewIntent(intent: android.content.Intent?) {
         super.onNewIntent(intent)

@@ -403,4 +403,13 @@ interface FacultyDao {
 
     @Query("DELETE FROM academic_event")
     suspend fun clearAcademicEvents()
+
+    @Query("DELETE FROM event_photo")
+    suspend fun clearEventPhotos()
+
+    @Query("DELETE FROM event_expense")
+    suspend fun clearEventExpenses()
+
+    @Query("DELETE FROM event_collection")
+    suspend fun clearEventCollections()
 }

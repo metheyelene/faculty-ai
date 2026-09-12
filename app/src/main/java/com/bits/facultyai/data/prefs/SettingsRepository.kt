@@ -20,6 +20,7 @@ data class AppSettings(
     val personalizedNotifications: Boolean = true,
     val greetingStyle: Int = 0, // 0 = Good morning..., 1 = Welcome back..., 2 = Hello...
     val accentPulse: Boolean = true, // kinetic motion enabled
+    val guestMode: Boolean = false, // true = using the app without an account
 )
 
 class SettingsRepository(private val context: Context) {
@@ -32,6 +33,7 @@ class SettingsRepository(private val context: Context) {
         val PERS_NOTIF = booleanPreferencesKey("personalized_notifications")
         val GREETING = intPreferencesKey("greeting_style")
         val MOTION = booleanPreferencesKey("accent_pulse")
+        val GUEST = booleanPreferencesKey("guest_mode")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { p ->
@@ -47,6 +49,7 @@ class SettingsRepository(private val context: Context) {
             personalizedNotifications = p[Keys.PERS_NOTIF] ?: true,
             greetingStyle = p[Keys.GREETING] ?: 0,
             accentPulse = p[Keys.MOTION] ?: true,
+            guestMode = p[Keys.GUEST] ?: false,
         )
     }
 
@@ -76,5 +79,9 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setAccentPulse(enabled: Boolean) {
         context.dataStore.edit { it[Keys.MOTION] = enabled }
+    }
+
+    suspend fun setGuestMode(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.GUEST] = enabled }
     }
 }

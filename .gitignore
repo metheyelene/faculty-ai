@@ -24,3 +24,7 @@ keystore.properties
 
 # Kotlin/Native & compose compiler local caches
 .kotlin/
+
+# Firebase config (injected via CI secret or added locally; never commit)
+app/google-services.json
+google-services.json
