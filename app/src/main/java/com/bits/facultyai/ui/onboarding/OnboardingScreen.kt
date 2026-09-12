@@ -116,8 +116,14 @@ fun OnboardingScreen(
 @Composable
 private fun ProfileStep(vm: OnboardingViewModel, showNameError: Boolean) {
     val k = LocalKineticColors.current
+    // Collect field state here — a raw `flow.value` read in composition never
+    // recomposes, which froze these fields while typing.
+    val fullName by vm.fullName.collectAsStateWithLifecycle()
+    val preferredName by vm.preferredName.collectAsStateWithLifecycle()
+    val designation by vm.designation.collectAsStateWithLifecycle()
+    val department by vm.department.collectAsStateWithLifecycle()
     Column {
-        GlassTextField(value = vm.fullName.value, onValueChange = vm::setFullName, hint = "FULL NAME", isError = showNameError)
+        GlassTextField(value = fullName, onValueChange = vm::setFullName, hint = "FULL NAME", isError = showNameError)
         if (showNameError) {
             Spacer(Modifier.height(KineticSpacing.xs))
             Text(
@@ -127,9 +133,9 @@ private fun ProfileStep(vm: OnboardingViewModel, showNameError: Boolean) {
             )
         }
         Spacer(Modifier.height(KineticSpacing.md))
-        GlassTextField(value = vm.preferredName.value, onValueChange = vm::setPreferredName, hint = "PREFERRED NAME (HOW YOUR ASSISTANT GREETS YOU)")
+        GlassTextField(value = preferredName, onValueChange = vm::setPreferredName, hint = "PREFERRED NAME (HOW YOUR ASSISTANT GREETS YOU)")
         Spacer(Modifier.height(KineticSpacing.md))
-        GlassTextField(value = vm.designation.value, onValueChange = vm::setDesignation, hint = "DESIGNATION (E.G. ASSISTANT PROFESSOR)")
+        GlassTextField(value = designation, onValueChange = vm::setDesignation, hint = "DESIGNATION (E.G. ASSISTANT PROFESSOR)")
         Spacer(Modifier.height(KineticSpacing.xs))
         Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)) {
             listOf("PROFESSOR", "ASSOC. PROFESSOR", "ASST. PROFESSOR").forEach { pick ->
@@ -137,7 +143,7 @@ private fun ProfileStep(vm: OnboardingViewModel, showNameError: Boolean) {
             }
         }
         Spacer(Modifier.height(KineticSpacing.md))
-        GlassTextField(value = vm.department.value, onValueChange = vm::setDepartment, hint = "DEPARTMENT (E.G. ECE)")
+        GlassTextField(value = department, onValueChange = vm::setDepartment, hint = "DEPARTMENT (E.G. ECE)")
         Spacer(Modifier.height(KineticSpacing.md))
         Text(
             text = "Only your name, designation and department personalize the app. Everything stays editable in MY PROFILE.",
@@ -168,8 +174,9 @@ private fun QuickPick(label: String, onClick: () -> Unit) {
 @Composable
 private fun SubjectsStep(vm: OnboardingViewModel) {
     val k = LocalKineticColors.current
+    val subjects by vm.subjects.collectAsStateWithLifecycle()
     Column {
-        KineticTextField(value = vm.subjects.value, onValueChange = vm::setSubjects, hint = "e.g. DSP, Communication Systems, VLSI", minLines = 2, maxLines = 3)
+        KineticTextField(value = subjects, onValueChange = vm::setSubjects, hint = "e.g. DSP, Communication Systems, VLSI", minLines = 2, maxLines = 3)
         Spacer(Modifier.height(KineticSpacing.md))
         Text(
             text = "Your assistant uses this to understand questions like \"prepare something for my next class\".",
