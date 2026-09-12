@@ -9,6 +9,7 @@ import com.bits.facultyai.data.local.ClassSlotEntity
 import com.bits.facultyai.data.local.FacultyDatabase
 import com.bits.facultyai.data.local.StudentEntity
 import com.bits.facultyai.domain.TimeUtils
+import com.bits.facultyai.notifications.SyncScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -41,6 +42,25 @@ class AttendanceViewModel(application: Application) : AndroidViewModel(applicati
         marks.value = students.value
             .filter { it.year == slot.year && it.section == slot.section }
             .associate { it.id to "PRESENT" }
+    }
+
+    /**
+     * Repairs a timetable slot whose year predates the editor's year selector
+     * (all legacy slots defaulted to 1). Rewrites the slot AND re-points any
+     * attendance already recorded under the wrong year, so daily marking and
+     * monthly summaries stay consistent.
+     */
+    fun repairSlotYear(slot: ClassSlotEntity, correctYear: Int) {
+        if (correctYear !in 1..4 || correctYear == slot.year) return
+        viewModelScope.launch {
+            dao.updateClassSlot(slot.copy(year = correctYear))
+            dao.repointAttendanceYear(slot.id, correctYear)
+            selectedSlot.value = slot.copy(year = correctYear)
+            marks.value = students.value
+                .filter { it.year == correctYear && it.section == slot.section }
+                .associate { it.id to "PRESENT" }
+            SyncScheduler.syncAll(getApplication())
+        }
     }
 
     fun setMark(studentId: Long, status: String) {

@@ -60,7 +60,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun captureDeepLink(intent: android.content.Intent?) {
-        val route = intent?.getStringExtra(SyncScheduler.EXTRA_DEEP_LINK)
+        // Only trust deep-link routes from our own notification/alarm pipeline.
+        // Any external app can send an explicit intent to the launcher activity,
+        // and a foreign route string would make the app navigate on their behalf.
+        if (intent == null || intent.`package` != packageName) return
+        val route = intent.getStringExtra(SyncScheduler.EXTRA_DEEP_LINK)
         if (!route.isNullOrBlank()) pendingDeepLink.value = route
     }
 }

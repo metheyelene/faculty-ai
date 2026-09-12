@@ -87,11 +87,43 @@ fun AttendanceClassScreen(
                 // Exact roster match: the slot's academic year AND section.
                 val roster = students.filter { it.year == slot.year && it.section == slot.section }
                 if (roster.isEmpty()) {
+                    // Self-healing fallback: the timetable editor historically
+                    // defaulted every slot to year 1 with no way to change it, so
+                    // existing slots can point at a year with no roster. If a
+                    // unique year exists for this section, offer to repair the
+                    // slot (and the attendance it has already recorded) so both
+                    // daily marking and monthly summaries line up.
+                    val candidateYears = students
+                        .filter { it.section == slot.section }
+                        .map { it.year }
+                        .toSortedSet()
+                    val inferred = candidateYears.singleOrNull()
+                    val suggested = inferred
+                        ?: students.filter { it.section == slot.section }
+                            .groupBy { it.year }.maxByOrNull { it.value.size }?.key
                     Text(
-                        text = "NO STUDENTS IMPORTED FOR ${slot.year.ordinalYear()} YEAR · SECTION ${slot.section}. IMPORT THE ROSTER FROM THE STUDENTS TAB.",
+                        text = buildString {
+                            append("NO STUDENTS FOR ${slot.year.ordinalYear()} YEAR · SECTION ${slot.section}. ")
+                            if (candidateYears.isEmpty()) {
+                                append("IMPORT THE ROSTER FROM THE STUDENTS TAB.")
+                            } else {
+                                append(
+                                    "A ROSTER EXISTS FOR " +
+                                        candidateYears.joinToString(" / ") { it.ordinalYear() } +
+                                        " YEAR."
+                                )
+                            }
+                        },
                         style = KineticType.labelBold,
                         color = k.statusWarning,
                     )
+                    if (suggested != null) {
+                        Spacer(Modifier.height(KineticSpacing.sm))
+                        KineticGhostButton(
+                            text = "USE ${suggested.ordinalYear()} YEAR ROSTER",
+                            onClick = { vm.repairSlotYear(slot, suggested) },
+                        )
+                    }
                 }
                 roster.forEachIndexed { index, student ->
                     Row(

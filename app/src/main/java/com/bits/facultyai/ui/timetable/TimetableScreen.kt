@@ -279,6 +279,10 @@ private fun ClassEditorDialog(vm: TimetableViewModel, existing: ClassSlotEntity?
     var subject by remember { mutableStateOf(existing?.subject ?: "") }
     var section by remember { mutableStateOf(existing?.section ?: "") }
     var room by remember { mutableStateOf(existing?.room ?: "") }
+    // The academic year this slot is taught to (1..4). Defaults to 1, but is
+    // always shown explicitly — attendance joins students by year + section, so
+    // a wrong year silently empties the class screen.
+    var year by remember { mutableStateOf(existing?.year ?: 1) }
     var day by remember { mutableStateOf(existing?.dayOfWeek ?: selectedDay) }
     var startH by remember { mutableStateOf(((existing?.startTimeMinutes ?: 540) / 60).toString()) }
     var startM by remember { mutableStateOf(((existing?.startTimeMinutes ?: 540) % 60).toString().padStart(2, '0')) }
@@ -299,6 +303,29 @@ private fun ClassEditorDialog(vm: TimetableViewModel, existing: ClassSlotEntity?
             KineticTextField(value = subject, onValueChange = { subject = it }, hint = "SUBJECT")
             Spacer(Modifier.height(KineticSpacing.sm))
             KineticTextField(value = section, onValueChange = { section = it }, hint = "SECTION (e.g. III ECE-A)")
+            Spacer(Modifier.height(KineticSpacing.sm))
+            Text(text = "ACADEMIC YEAR", style = KineticType.labelBold, color = k.mutedForeground)
+            Spacer(Modifier.height(KineticSpacing.xs))
+            Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.xs), modifier = Modifier.fillMaxWidth()) {
+                listOf(1, 2, 3, 4).forEach { y ->
+                    val selected = year == y
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .border(if (selected) KineticBorder.heavy else KineticBorder.hair, if (selected) k.accent else k.border)
+                            .background(if (selected) k.accent else Color.Transparent)
+                            .clickable { year = y }
+                            .padding(vertical = KineticSpacing.sm),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = when (y) { 1 -> "1ST"; 2 -> "2ND"; 3 -> "3RD"; else -> "4TH" },
+                            style = KineticType.labelBold,
+                            color = if (selected) k.accentForeground else k.mutedForeground,
+                        )
+                    }
+                }
+            }
             Spacer(Modifier.height(KineticSpacing.sm))
             KineticTextField(value = room, onValueChange = { room = it }, hint = "ROOM")
             Spacer(Modifier.height(KineticSpacing.sm))
@@ -360,6 +387,7 @@ private fun ClassEditorDialog(vm: TimetableViewModel, existing: ClassSlotEntity?
                                     subject = subject.trim(),
                                     section = section.ifBlank { "—" },
                                     room = room.ifBlank { "—" },
+                                    year = year.coerceIn(1, 4),
                                 )
                                 if (existing == null) vm.addSlot(entity) else vm.updateSlot(entity)
                                 onDismiss?.invoke() ?: vm.closeAddDialog()

@@ -362,4 +362,26 @@ class StudentExcelParserTest {
             assertNotNull(e.message)
         }
     }
+
+    @Test
+    fun `workbook with too many entries is rejected without parsing`() {
+        // Zip-bomb shape: hundreds of tiny harmless entries. The entry-count
+        // guard must trip before any XML parsing (JVM-safe: no Android Xml).
+        val bytes = ByteArrayOutputStream().use { out ->
+            ZipOutputStream(out).use { zip ->
+                repeat(300) { i ->
+                    zip.putNextEntry(ZipEntry("xl/media/image$i.png"))
+                    zip.write(byteArrayOf(i.toByte()))
+                    zip.closeEntry()
+                }
+            }
+            out.toByteArray()
+        }
+        try {
+            XlsxReader.readFirstSheet(ByteArrayInputStream(bytes))
+            throw AssertionError("expected ImportException")
+        } catch (e: XlsxReader.ImportException) {
+            assertTrue(e.message!!.contains("too many parts"))
+        }
+    }
 }

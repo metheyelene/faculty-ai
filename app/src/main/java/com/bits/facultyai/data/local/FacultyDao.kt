@@ -113,6 +113,10 @@ interface FacultyDao {
     )
     fun observeStudentEntriesBetween(studentId: Long, startIso: String, endIso: String): Flow<List<StudentMonthEntry>>
 
+    /** Legacy-slot repair: move a slot's recorded attendance to the corrected year. */
+    @Query("UPDATE attendance_record SET year = :year WHERE classSlotId = :slotId")
+    suspend fun repointAttendanceYear(slotId: Long, year: Int)
+
     @Query("UPDATE attendance_record SET presentCount = :present, absentCount = :absent, lateCount = :late, excusedCount = :excused WHERE id = :id")
     suspend fun updateAttendanceRecordCounts(id: Long, present: Int, absent: Int, late: Int, excused: Int)
 

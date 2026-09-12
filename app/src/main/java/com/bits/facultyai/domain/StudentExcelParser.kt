@@ -21,15 +21,29 @@ object XlsxReader {
     /** Thrown for structurally broken workbooks with a human-readable message. */
     class ImportException(message: String) : Exception(message)
 
+    // Resource guards: the reader is fed arbitrary files picked from SAF, so a
+    // hostile workbook (zip bomb / giant sheet) must fail fast instead of
+    // exhausting memory. Generous limits — far above any real roster or
+    // attendance sheet, small enough to keep the parse bounded.
+    private const val MAX_ENTRIES = 256
+    private const val MAX_SHARED_STRINGS = 100_000
+    private const val MAX_STRING_LENGTH = 32_768
+    private const val MAX_ROWS = 20_000
+    private const val MAX_CELLS_PER_ROW = 512
+
     fun readFirstSheet(input: InputStream): List<List<String?>> {
         sharedStrings = null
         var sheet: List<List<String?>>? = null
         var sawZipEntry = false
+        var entries = 0
 
         ZipInputStream(input.buffered()).use { zip ->
             while (true) {
                 val entry = zip.nextEntry ?: break
                 sawZipEntry = true
+                if (++entries > MAX_ENTRIES) {
+                    throw ImportException("This workbook has too many parts to read safely.")
+                }
                 when {
                     entry.name.equals("xl/sharedStrings.xml", ignoreCase = true) ->
                         sharedStrings = readSharedStrings(zip)
@@ -56,8 +70,15 @@ object XlsxReader {
             val ev = parser.next()
             if (ev == XmlPullParser.END_DOCUMENT) break
             when (ev) {
-                XmlPullParser.START_TAG -> if (parser.name == "si") { inSi = true; sb.clear() }
-                XmlPullParser.TEXT -> if (inSi) sb.append(parser.text)
+                XmlPullParser.START_TAG -> if (parser.name == "si") {
+                    if (strings.size >= MAX_SHARED_STRINGS) {
+                        throw ImportException("This workbook's shared string table is too large.")
+                    }
+                    inSi = true; sb.clear()
+                }
+                XmlPullParser.TEXT -> if (inSi) {
+                    if (sb.length < MAX_STRING_LENGTH) sb.append(parser.text)
+                }
                 XmlPullParser.END_TAG -> if (parser.name == "si" && inSi) {
                     strings.add(sb.toString().trim())
                     inSi = false
@@ -87,9 +108,15 @@ object XlsxReader {
             if (ev == XmlPullParser.END_DOCUMENT) break
             when (ev) {
                 XmlPullParser.START_TAG -> when (parser.name) {
-                    "row" -> { currentRow = mutableMapOf(); rows.add(currentRow!!) }
+                    "row" -> {
+                        if (rows.size >= MAX_ROWS) {
+                            throw ImportException("This worksheet has too many rows to import.")
+                        }
+                        currentRow = mutableMapOf(); rows.add(currentRow!!)
+                    }
                     "c" -> {
                         currentCol = parser.getAttributeValue(null, "r")?.let(::colIndex) ?: (currentRow?.size ?: 0)
+                        if (currentCol >= MAX_CELLS_PER_ROW) currentCol = -1
                         cellType = parser.getAttributeValue(null, "t") ?: ""
                         cellSb = StringBuilder()
                     }
@@ -120,8 +147,10 @@ object XlsxReader {
         }
 
         val width = rows.maxOfOrNull { it.keys.maxOrNull() ?: -1 }?.plus(1) ?: 0
+        // Cells beyond the guard (currentCol = -1) stay null; every returned
+        // string is clamped so a single cell can't balloon the row list.
         return rows.map { row ->
-            List(width) { i -> row[i] }
+            List(width) { i -> row[i]?.take(MAX_STRING_LENGTH) }
         }
     }
 

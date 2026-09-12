@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.bits.facultyai.data.local.ClassSlotEntity
 import com.bits.facultyai.data.local.FacultyDatabase
 import com.bits.facultyai.data.local.TimetableVersionEntity
+import com.bits.facultyai.domain.StudentExcelParser
 import com.bits.facultyai.domain.TimeUtils
 import com.bits.facultyai.domain.TimetableExtractor
 import com.bits.facultyai.domain.TimetableOcr
@@ -188,6 +189,12 @@ class TimetableViewModel(application: Application) : AndroidViewModel(applicatio
                         subject = it.subject.trim(),
                         section = it.section.ifBlank { "—" },
                         room = it.room.ifBlank { "—" },
+                        // Derive the academic year from the section text (roster
+                        // sections carry "III ECE-A"-style ordinals) so imported
+                        // slots join the right roster; 1 is the honest fallback.
+                        year = StudentExcelParser.parseYearFromSection(it.section)
+                            ?: dao.observeStudents().first().map { s -> s.year }
+                                .toSortedSet().singleOrNull() ?: 1,
                     )
                 }
             )
