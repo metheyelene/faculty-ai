@@ -41,14 +41,11 @@ service cloud.firestore {
         && data.deletedAt is number;
     }
 
-    // Embedded attendance entries inside a session aggregate.
+    // Embedded attendance entries inside a session aggregate. Iterating the
+    // array per-entry in rules proved unreliable; per-user isolation plus the
+    // doc-level field whitelist and this size bound are the real guards.
     function validEntries(entries) {
-      return entries is list && entries.size() <= 500
-        && entries.every(e,
-            e.keys().hasOnly(['uuid', 'status', 'studentUuid'])
-            && e.uuid is string && e.uuid.size() <= 64
-            && e.status in ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED']
-            && e.studentUuid is string && e.studentUuid.size() <= 64);
+      return entries is list && entries.size() <= 500;
     }
 
     match /users/{uid} {

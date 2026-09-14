@@ -212,18 +212,20 @@ class TimetableViewModel(application: Application) : AndroidViewModel(applicatio
 
     // ---- Manual editing ----
 
-    fun addSlot(slot: ClassSlotEntity) = viewModelScope.launch {
-        if (dao.countOverlapping(slot.dayOfWeek, slot.startTimeMinutes, slot.endTimeMinutes) == 0) {
-            dao.insertClassSlot(slot.copy(updatedAt = System.currentTimeMillis()))
-            SyncScheduler.syncTimetableReminders(getApplication())
-        }
+    /** Returns false (and saves nothing) when the slot overlaps an existing class. */
+    suspend fun addSlot(slot: ClassSlotEntity): Boolean {
+        if (dao.countOverlapping(slot.dayOfWeek, slot.startTimeMinutes, slot.endTimeMinutes) > 0) return false
+        dao.insertClassSlot(slot.copy(updatedAt = System.currentTimeMillis()))
+        SyncScheduler.syncTimetableReminders(getApplication())
+        return true
     }
 
-    fun updateSlot(slot: ClassSlotEntity) = viewModelScope.launch {
-        if (dao.countOverlapping(slot.dayOfWeek, slot.startTimeMinutes, slot.endTimeMinutes, excludeId = slot.id) == 0) {
-            dao.updateClassSlot(slot.copy(updatedAt = System.currentTimeMillis()))
-            SyncScheduler.syncTimetableReminders(getApplication())
-        }
+    /** Returns false (and saves nothing) when the slot overlaps another class. */
+    suspend fun updateSlot(slot: ClassSlotEntity): Boolean {
+        if (dao.countOverlapping(slot.dayOfWeek, slot.startTimeMinutes, slot.endTimeMinutes, excludeId = slot.id) > 0) return false
+        dao.updateClassSlot(slot.copy(updatedAt = System.currentTimeMillis()))
+        SyncScheduler.syncTimetableReminders(getApplication())
+        return true
     }
 
     fun deleteSlot(id: Long) = viewModelScope.launch {

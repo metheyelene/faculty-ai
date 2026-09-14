@@ -18,16 +18,16 @@ object DemoData {
     }
 
     /**
-     * Idempotent. If any demo slot already exists, nothing is inserted (the
-     * dataset is deterministic, so a partial load can be safely re-run).
+     * Idempotent. The timetable/roster/finance block is all-or-nothing (any
+     * demo slot present ⇒ already loaded); the calendar seeds independently
+     * so a demo dataset created before calendar seeding gains it on re-tap.
      */
     suspend fun load(context: Context): Result = try {
         val db = FacultyDatabase.get(context)
         val dao = db.facultyDao()
+        var changed = false
         db.withTransaction {
-            if (dao.countDemoSlots() > 0) {
-                Result.AlreadyLoaded
-            } else {
+            if (dao.countDemoSlots() == 0) {
                 // 1. Timetable (subjects carry the marker so the dashboard labels itself).
                 val slots = DemoDataFactory.timetable()
                 val slotIds = dao.insertClassSlots(slots)
@@ -58,13 +58,33 @@ object DemoData {
                 val now = System.currentTimeMillis()
                 for (n in DemoDataFactory.notes(now)) dao.insertNote(n)
 
-                // 5. The flagship event + finances.
+                // 5. Three events — upcoming fest, workshop (own budget) and a
+                //    past seminar — so UPCOMING/PAST filters and per-event
+                //    finances are all demonstrable.
                 val eventId = dao.insertEvent(DemoDataFactory.event())
                 for (e in DemoDataFactory.expenses(eventId)) dao.insertEventExpense(e)
                 for (c in DemoDataFactory.collections(eventId)) dao.insertEventCollection(c)
+
+                val workshopId = dao.insertEvent(DemoDataFactory.workshopEvent())
+                for (e in DemoDataFactory.workshopExpenses(workshopId)) dao.insertEventExpense(e)
+                for (c in DemoDataFactory.workshopCollections(workshopId)) dao.insertEventCollection(c)
+
+                val seminarId = dao.insertEvent(DemoDataFactory.seminarEvent())
+                for (c in DemoDataFactory.seminarCollection(seminarId)) dao.insertEventCollection(c)
+                changed = true
+            }
+            // 6. Calendar (exams + holidays) — seeded even for older demo sets.
+            if (dao.countDemoAcademicEvents() == 0) {
+                for (e in DemoDataFactory.calendarEvents(java.time.LocalDate.now())) dao.insertAcademicEvent(e)
+                changed = true
+            }
+            // 7. Memories — same top-up semantics for pre-existing demo sets.
+            if (dao.countDemoMemories() == 0) {
+                for (m in DemoDataFactory.memories(System.currentTimeMillis())) dao.insertMemory(m)
+                changed = true
             }
         }
-        Result.Loaded
+        if (changed) Result.Loaded else Result.AlreadyLoaded
     } catch (e: Exception) {
         Result.Failed(e.message ?: "Demo load failed")
     }
@@ -88,6 +108,8 @@ object DemoData {
             dao.deleteDemoStudents()
             dao.deleteDemoNotes()
             dao.deleteDemoTasks()
+            dao.deleteDemoAcademicEvents()
+            dao.deleteDemoMemories()
             val eventIds = dao.demoEventIds()
             if (eventIds.isNotEmpty()) {
                 dao.deleteCollectionsForEvents(eventIds)

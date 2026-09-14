@@ -546,6 +546,18 @@ interface FacultyDao {
     @Query("DELETE FROM task WHERE title LIKE '%[DEMO]%'")
     suspend fun deleteDemoTasks()
 
+    @Query("SELECT COUNT(*) FROM academic_event WHERE title LIKE '%[DEMO]%'")
+    suspend fun countDemoAcademicEvents(): Int
+
+    @Query("DELETE FROM academic_event WHERE title LIKE '%[DEMO]%'")
+    suspend fun deleteDemoAcademicEvents()
+
+    @Query("SELECT COUNT(*) FROM memory WHERE source LIKE '%[DEMO]%'")
+    suspend fun countDemoMemories(): Int
+
+    @Query("DELETE FROM memory WHERE source LIKE '%[DEMO]%'")
+    suspend fun deleteDemoMemories()
+
     @Query("SELECT id FROM event WHERE name LIKE '%[DEMO]%'")
     suspend fun demoEventIds(): List<Long>
 

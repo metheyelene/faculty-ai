@@ -1,11 +1,13 @@
 package com.bits.facultyai.data.demo
 
+import com.bits.facultyai.data.local.AcademicEventEntity
 import com.bits.facultyai.data.local.AttendanceEntryEntity
 import com.bits.facultyai.data.local.AttendanceRecordEntity
 import com.bits.facultyai.data.local.ClassSlotEntity
 import com.bits.facultyai.data.local.EventCollectionEntity
 import com.bits.facultyai.data.local.EventEntity
 import com.bits.facultyai.data.local.EventExpenseEntity
+import com.bits.facultyai.data.local.MemoryEntity
 import com.bits.facultyai.data.local.NoteEntity
 import com.bits.facultyai.data.local.StudentEntity
 import com.bits.facultyai.data.local.TaskEntity
@@ -59,29 +61,44 @@ object DemoDataFactory {
 
     fun timetable(): List<ClassSlotEntity> {
         val now = System.currentTimeMillis()
-        // Mon–Fri, four teaching periods, shared across sections/years.
-        val periods = listOf(540 to 630, 630 to 720, 750 to 840, 840 to 930) // 9:00…15:30
+        // Mon–Sat, three teaching periods a day, both sections — every day of
+        // the week has live content so a demo never lands on an empty day.
+        val periods = listOf(540 to 630, 630 to 720, 750 to 840) // 9:00…14:00
+        data class Entry(val day: DayOfWeek, val subject: String, val section: String, val period: Int)
         val grid = listOf(
-            Triple(DayOfWeek.MONDAY, DEMO_SUBJECTS[0], SECTION_A),
-            Triple(DayOfWeek.MONDAY, DEMO_SUBJECTS[1], SECTION_B),
-            Triple(DayOfWeek.TUESDAY, DEMO_SUBJECTS[2], SECTION_A),
-            Triple(DayOfWeek.TUESDAY, DEMO_SUBJECTS[3], SECTION_B),
-            Triple(DayOfWeek.WEDNESDAY, DEMO_SUBJECTS[1], SECTION_A),
-            Triple(DayOfWeek.WEDNESDAY, DEMO_SUBJECTS[0], SECTION_B),
-            Triple(DayOfWeek.THURSDAY, DEMO_SUBJECTS[3], SECTION_A),
-            Triple(DayOfWeek.THURSDAY, DEMO_SUBJECTS[2], SECTION_B),
-            Triple(DayOfWeek.FRIDAY, DEMO_SUBJECTS[0], SECTION_A),
-            Triple(DayOfWeek.FRIDAY, DEMO_SUBJECTS[1], SECTION_B),
+            Entry(DayOfWeek.MONDAY, DEMO_SUBJECTS[0], SECTION_A, 0),
+            Entry(DayOfWeek.MONDAY, DEMO_SUBJECTS[1], SECTION_B, 0),
+            Entry(DayOfWeek.MONDAY, DEMO_SUBJECTS[2], SECTION_A, 1),
+            Entry(DayOfWeek.MONDAY, DEMO_SUBJECTS[3], SECTION_B, 2),
+            Entry(DayOfWeek.TUESDAY, DEMO_SUBJECTS[1], SECTION_A, 0),
+            Entry(DayOfWeek.TUESDAY, DEMO_SUBJECTS[2], SECTION_B, 0),
+            Entry(DayOfWeek.TUESDAY, DEMO_SUBJECTS[3], SECTION_A, 1),
+            Entry(DayOfWeek.TUESDAY, DEMO_SUBJECTS[0], SECTION_B, 2),
+            Entry(DayOfWeek.WEDNESDAY, DEMO_SUBJECTS[2], SECTION_A, 0),
+            Entry(DayOfWeek.WEDNESDAY, DEMO_SUBJECTS[3], SECTION_B, 0),
+            Entry(DayOfWeek.WEDNESDAY, DEMO_SUBJECTS[0], SECTION_A, 1),
+            Entry(DayOfWeek.WEDNESDAY, DEMO_SUBJECTS[1], SECTION_B, 2),
+            Entry(DayOfWeek.THURSDAY, DEMO_SUBJECTS[3], SECTION_A, 0),
+            Entry(DayOfWeek.THURSDAY, DEMO_SUBJECTS[0], SECTION_B, 0),
+            Entry(DayOfWeek.THURSDAY, DEMO_SUBJECTS[1], SECTION_A, 1),
+            Entry(DayOfWeek.THURSDAY, DEMO_SUBJECTS[2], SECTION_B, 2),
+            Entry(DayOfWeek.FRIDAY, DEMO_SUBJECTS[0], SECTION_A, 0),
+            Entry(DayOfWeek.FRIDAY, DEMO_SUBJECTS[2], SECTION_B, 0),
+            Entry(DayOfWeek.FRIDAY, DEMO_SUBJECTS[1], SECTION_A, 1),
+            Entry(DayOfWeek.FRIDAY, DEMO_SUBJECTS[3], SECTION_B, 2),
+            Entry(DayOfWeek.SATURDAY, DEMO_SUBJECTS[1], SECTION_A, 0),
+            Entry(DayOfWeek.SATURDAY, DEMO_SUBJECTS[3], SECTION_B, 0),
+            Entry(DayOfWeek.SATURDAY, DEMO_SUBJECTS[2], SECTION_A, 1),
         )
-        return grid.mapIndexed { i, (day, subject, section) ->
-            val (start, end) = periods[i % periods.size]
+        return grid.mapIndexed { i, e ->
+            val (start, end) = periods[e.period]
             ClassSlotEntity(
-                dayOfWeek = day.value,
+                dayOfWeek = e.day.value,
                 startTimeMinutes = start,
                 endTimeMinutes = end,
-                subject = subject,
-                section = section,
-                room = "LH-${'A' + (i % 4)}",
+                subject = e.subject,
+                section = e.section,
+                room = "LH-${'A' + (i % 6)}",
                 year = 3,
                 updatedAt = now,
             )
@@ -117,6 +134,23 @@ object DemoDataFactory {
                 category = "MEETING",
                 createdAt = now,
             ),
+            TaskEntity(
+                title = "$MARKER Weekly quiz — DSP",
+                description = "Set 10 questions on sampling and quantization; upload to the class group.",
+                dueAt = at(today.plusDays(3), 9),
+                priority = "MEDIUM",
+                category = "CLASS",
+                recurrence = "WEEKLY",
+                createdAt = now,
+            ),
+            TaskEntity(
+                title = "$MARKER Submit lab budget request",
+                description = "Equipment list for the microcontrollers lab — forward to the HOD.",
+                dueAt = at(today.plusDays(7), 12),
+                priority = "HIGH",
+                category = "ADMIN",
+                createdAt = now,
+            ),
         )
     }
 
@@ -149,6 +183,96 @@ object DemoDataFactory {
             updatedAt = now,
             createdAt = now,
         ),
+        NoteEntity(
+            title = "$MARKER Lesson plan — Microcontrollers Lab 4",
+            body = "Objective: timer interrupts in C. Equipment: 8 kits, oscilloscopes. " +
+                "Demo circuit: PWM-driven LED brightness. Wrap-up quiz (5 min).",
+            folder = "LESSON PLANS",
+            subject = "Microcontrollers",
+            updatedAt = now,
+            createdAt = now,
+        ),
+        NoteEntity(
+            title = "$MARKER Faculty meeting — curriculum minutes",
+            body = "Attendees: HOD, 6 faculty. Decisions: CIA-2 moved to week 8; " +
+                "lab manuals due before mid-sem; new elective proposed for VI sem.",
+            folder = "MEETINGS",
+            subject = null,
+            updatedAt = now,
+            createdAt = now,
+        ),
+        NoteEntity(
+            title = "$MARKER Research — phased-array calibration paper",
+            body = "Reading: mutual-coupling compensation in adaptive arrays. " +
+                "Gap: calibration drift under thermal load — possible review topic.",
+            folder = "RESEARCH",
+            subject = "Antennas & Wave Propagation",
+            favorite = true,
+            updatedAt = now,
+            createdAt = now,
+        ),
+        NoteEntity(
+            title = "$MARKER Open-house demo ideas",
+            body = "1. Live FFT of microphone input on the classroom display. " +
+                "2. Student-built line follower track. 3. QR-linked project videos.",
+            folder = "IDEAS",
+            subject = null,
+            updatedAt = now,
+            createdAt = now,
+        ),
+        NoteEntity(
+            title = "$MARKER Personal — committee travel",
+            body = "Boarding pass printed; carry the sanction letter for the " +
+                "TA/DA claim. Remind the office about the substitute for Monday.",
+            folder = "PERSONAL",
+            subject = null,
+            updatedAt = now,
+            createdAt = now,
+        ),
+    )
+
+    /**
+     * What the assistant "knows" about this faculty member — gives MY MEMORY
+     * and the AI screen real, personalized content during a demo.
+     */
+    fun memories(now: Long): List<MemoryEntity> = listOf(
+        MemoryEntity(
+            category = "TEACHING",
+            text = "This semester I teach Digital Signal Processing, VLSI Design, " +
+                "Antennas & Wave Propagation and Microcontrollers to III ECE.",
+            source = "$MARKER Presentation",
+            createdAt = now,
+        ),
+        MemoryEntity(
+            category = "STUDENTS",
+            text = "III ECE-A has 24 students; Aarav Sharma is the class representative.",
+            source = "$MARKER Presentation",
+            createdAt = now,
+        ),
+        MemoryEntity(
+            category = "WORK",
+            text = "I coordinate the department technical fest budget and the lab equipment requests.",
+            source = "$MARKER Presentation",
+            createdAt = now,
+        ),
+        MemoryEntity(
+            category = "PREFERENCES",
+            text = "Schedule my class reminders 30 minutes before the period starts.",
+            source = "$MARKER Presentation",
+            createdAt = now,
+        ),
+        MemoryEntity(
+            category = "NOTES",
+            text = "My DSP lecture notes are numbered by lecture; quizzes reference the latest two lectures.",
+            source = "$MARKER Presentation",
+            createdAt = now,
+        ),
+        MemoryEntity(
+            category = "RESEARCH",
+            text = "Currently reviewing papers on phased-array calibration for the ECE seminar series.",
+            source = "$MARKER Presentation",
+            createdAt = now,
+        ),
     )
 
     /**
@@ -164,7 +288,7 @@ object DemoDataFactory {
         val today = LocalDate.now()
         var day = today.minusDays(1)
         var sessions = 0
-        while (sessions < 12 && day.isAfter(today.minusDays(21))) {
+        while (sessions < 18 && day.isAfter(today.minusDays(21))) {
             val dow = day.dayOfWeek.value
             if (dow <= 5) {
                 val daySlots = slots.filter { it.dayOfWeek == dow }
@@ -202,7 +326,7 @@ object DemoDataFactory {
                     )
                     out += record to entries
                 }
-                sessions++
+                sessions += daySlots.size
             }
             day = day.minusDays(1)
         }
@@ -225,9 +349,95 @@ object DemoDataFactory {
             department = "ECE",
             participants = "III ECE-A, III ECE-B",
             category = "FEST",
-            notes = "$MARKER — sample data; delete from Settings → Demo data.",
+            notes = "$MARKER — sample data; remove from More → Presentation mode.",
             createdAt = now,
             updatedAt = now,
+        )
+    }
+
+    /** A second upcoming event so filtering between events is demonstrable. */
+    fun workshopEvent(): EventEntity {
+        val now = System.currentTimeMillis()
+        val date = LocalDate.now().plusDays(10)
+        return EventEntity(
+            name = "$MARKER PCB Design Workshop",
+            date = date.toString(),
+            startTimeMinutes = 600,
+            endTimeMinutes = 780, // 10:00 AM – 1:00 PM
+            venue = "Electronics Lab 2",
+            description = "Hands-on schematic capture and layout with industry mentors; " +
+                "each team fabricates a small board.",
+            organizer = "Tech Club",
+            department = "ECE",
+            participants = "III ECE-A (12 teams)",
+            category = "WORKSHOP",
+            notes = "$MARKER — sample data; remove from More → Presentation mode.",
+            createdAt = now,
+            updatedAt = now,
+        )
+    }
+
+    /** A past event so the PAST filter has content. */
+    fun seminarEvent(): EventEntity {
+        val now = System.currentTimeMillis()
+        val date = LocalDate.now().minusDays(6)
+        return EventEntity(
+            name = "$MARKER Alumni Industry Talk",
+            date = date.toString(),
+            startTimeMinutes = 630, // 10:30 AM
+            endTimeMinutes = 750,   // 12:30 PM
+            venue = "Auditorium",
+            description = "Alumni from semiconductor and telecom firms on career paths " +
+                "and what they wish they had learned in college.",
+            organizer = "Alumni Cell",
+            department = "ECE",
+            participants = "II & III ECE",
+            category = "SEMINAR",
+            notes = "$MARKER — sample data; remove from More → Presentation mode.",
+            createdAt = now,
+            updatedAt = now,
+        )
+    }
+
+    /** Modest finances for the workshop — shows totals are per-event. */
+    fun workshopExpenses(eventId: Long): List<EventExpenseEntity> {
+        val now = System.currentTimeMillis()
+        val d = LocalDate.now().toString()
+        fun rupees(r: Long) = r * 100
+        return listOf(
+            EventExpenseEntity(eventId = eventId, title = "$MARKER PCB blanks & components", category = "EQUIPMENT",
+                amountPaisa = rupees(4200), date = d,
+                paidBy = "Tech club", paymentMethod = "UPI", vendor = "Vizag Component House",
+                createdAt = now, updatedAt = now),
+            EventExpenseEntity(eventId = eventId, title = "$MARKER Mentor travel & refreshments", category = "FOOD",
+                amountPaisa = rupees(2500), date = d,
+                paidBy = "Faculty coordinator", paymentMethod = "CASH",
+                createdAt = now, updatedAt = now),
+        )
+    }
+
+    fun workshopCollections(eventId: Long): List<EventCollectionEntity> {
+        val now = System.currentTimeMillis()
+        val d = LocalDate.now().toString()
+        fun rupees(r: Long) = r * 100
+        return listOf(
+            EventCollectionEntity(eventId = eventId, source = "Registration fees (12 teams)",
+                amountPaisa = rupees(6000), date = d, paymentMethod = "UPI",
+                purpose = "₹500 per team", reference = "REG-W12", createdAt = now, updatedAt = now),
+            EventCollectionEntity(eventId = eventId, source = "Sponsorship — local PCB firm",
+                amountPaisa = rupees(3000), date = d, paymentMethod = "BANK",
+                purpose = "Kit sponsorship", reference = "SPN-W3", createdAt = now, updatedAt = now),
+        )
+    }
+
+    fun seminarCollection(eventId: Long): List<EventCollectionEntity> {
+        val now = System.currentTimeMillis()
+        val d = LocalDate.now().minusDays(6).toString()
+        return listOf(
+            EventCollectionEntity(eventId = eventId, source = "Alumni Cell grant",
+                amountPaisa = 500000L, date = d, paymentMethod = "BANK",
+                purpose = "Speaker honorarium and logistics", reference = "AC-2026-42",
+                createdAt = now, updatedAt = now),
         )
     }
 
@@ -252,6 +462,37 @@ object DemoDataFactory {
                 amountPaisa = rupees(3000), date = d,
                 paidBy = "Tech club", paymentMethod = "UPI", vendor = "AV Rentals Vizag",
                 createdAt = now, updatedAt = now),
+        )
+    }
+
+    /**
+     * Academic-calendar seeding: an exam block, a mid-semester break and a
+     * deadline, all relative to today so the calendar always has upcoming
+     * content during a demo. Marked and removable like every demo row.
+     */
+    fun calendarEvents(today: LocalDate): List<AcademicEventEntity> {
+        fun d(days: Long) = today.plusDays(days).toString()
+        return listOf(
+            AcademicEventEntity(
+                title = "$MARKER CIA-2 Examinations",
+                date = d(7),
+                endDate = d(9),
+                category = "EXAM",
+                notes = "All III ECE sections · Forenoon 9:30 AM, Afternoon 2:00 PM.",
+            ),
+            AcademicEventEntity(
+                title = "$MARKER Mid-semester Break",
+                date = d(16),
+                endDate = d(20),
+                category = "HOLIDAY",
+                notes = "Institute closed · Classes resume Monday.",
+            ),
+            AcademicEventEntity(
+                title = "$MARKER Project review — Phase 1",
+                date = d(25),
+                category = "DEADLINE",
+                notes = "Phase-1 report submission by 4 PM.",
+            ),
         )
     }
 

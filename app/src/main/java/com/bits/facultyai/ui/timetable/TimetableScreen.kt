@@ -28,6 +28,7 @@ import com.bits.facultyai.domain.TimeUtils
 import com.bits.facultyai.domain.TimetableExtractor
 import com.bits.facultyai.ui.components.GlassDialogSurface
 import com.bits.facultyai.ui.components.GlassStrength
+import kotlinx.coroutines.launch
 import com.bits.facultyai.ui.components.GlassSurface
 import com.bits.facultyai.ui.components.KineticButton
 import com.bits.facultyai.ui.components.KineticEmptyState
@@ -289,6 +290,7 @@ private fun ClassEditorDialog(vm: TimetableViewModel, existing: ClassSlotEntity?
     var endH by remember { mutableStateOf(((existing?.endTimeMinutes ?: 600) / 60).toString()) }
     var endM by remember { mutableStateOf(((existing?.endTimeMinutes ?: 600) % 60).toString().padStart(2, '0')) }
     var error by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     androidx.compose.ui.window.Dialog(onDismissRequest = { onDismiss?.invoke() ?: vm.closeAddDialog() }) {
         GlassDialogSurface(
@@ -389,8 +391,14 @@ private fun ClassEditorDialog(vm: TimetableViewModel, existing: ClassSlotEntity?
                                     room = room.ifBlank { "—" },
                                     year = year.coerceIn(1, 4),
                                 )
-                                if (existing == null) vm.addSlot(entity) else vm.updateSlot(entity)
-                                onDismiss?.invoke() ?: vm.closeAddDialog()
+                                scope.launch {
+                                    val ok = if (existing == null) vm.addSlot(entity) else vm.updateSlot(entity)
+                                    if (ok) {
+                                        onDismiss?.invoke() ?: vm.closeAddDialog()
+                                    } else {
+                                        error = "Overlaps an existing class — pick another day or time."
+                                    }
+                                }
                             }
                         }
                     },
