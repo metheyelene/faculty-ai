@@ -4,6 +4,10 @@ import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.material3.CircularProgressIndicator
@@ -212,22 +216,14 @@ fun GlassSendButton(
     contentDescription: String = "Send message",
 ) {
     val k = LocalKineticColors.current
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val reduced = rememberReducedMotion()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed && !reduced) 0.94f else 1f,
-        animationSpec = KineticMotion.springFast(),
-        label = "sendPressScale",
-    )
     val shape = Glass.shape(Glass.cornerSm)
+    val active = enabled && !busy
     Box(
         modifier = modifier
             .size(52.dp)
-            .scale(scale)
             .clip(shape)
             .then(
-                if (enabled && !busy) {
+                if (active) {
                     Modifier.background(k.accent, shape)
                 } else {
                     Modifier
@@ -235,16 +231,12 @@ fun GlassSendButton(
                         .border(KineticBorder.standard, if (enabled) k.accent else k.glassBorder, shape)
                 },
             )
-            .clickable(
-                interactionSource = interaction,
-                indication = null,
-                enabled = enabled && !busy,
-                onClick = onClick,
-            ),
+            .clickable(enabled = active, onClickLabel = contentDescription, onClick = onClick)
+            .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,
     ) {
         if (busy) {
-            // Small, calm progress ring — the “thinking” affordance.
+            // Small, calm progress ring — the "thinking" affordance.
             CircularProgressIndicator(
                 modifier = Modifier.size(22.dp),
                 strokeWidth = 2.dp,
@@ -252,7 +244,7 @@ fun GlassSendButton(
             )
         } else {
             Text(
-                text = "➤",
+                text = "\u27A4",
                 style = KineticType.heading,
                 color = if (enabled) k.accentForeground else k.mutedForeground,
             )

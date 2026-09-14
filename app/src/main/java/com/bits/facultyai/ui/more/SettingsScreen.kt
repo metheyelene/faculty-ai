@@ -10,6 +10,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,6 +37,7 @@ import com.bits.facultyai.data.demo.DemoData
 import com.bits.facultyai.data.sync.SyncEngine
 import com.bits.facultyai.data.sync.SyncStatus
 import com.bits.facultyai.data.update.UpdateChecker
+import com.bits.facultyai.data.update.UpdateDownloader
 import com.bits.facultyai.ui.components.KineticGhostButton
 import com.bits.facultyai.ui.components.KineticOutlinedButton
 import com.bits.facultyai.ui.components.KineticSectionHeader
@@ -128,6 +130,18 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val updateState = MutableStateFlow<UpdateChecker.Result?>(null)
     val updateChecking = MutableStateFlow(false)
 
+    /** Download lifecycle: IDLE → DOWNLOADING(p) → READY | FAILED. */
+    data class DownloadState(
+        val phase: Phase = Phase.IDLE,
+        val progress: Float = 0f,
+        val apkFile: java.io.File? = null,
+        val error: String? = null,
+    ) {
+        enum class Phase { IDLE, DOWNLOADING, READY, FAILED }
+    }
+
+    val downloadState = MutableStateFlow(DownloadState())
+
     val appVersion: String = UpdateChecker.installedVersion(application)
 
     fun checkForUpdates() {
@@ -138,6 +152,32 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             updateChecking.value = false
         }
     }
+
+    /** Downloads the update APK with progress; result surfaces in [downloadState]. */
+    fun downloadUpdate(info: UpdateChecker.UpdateInfo) {
+        val current = downloadState.value
+        if (current.phase == DownloadState.Phase.DOWNLOADING) return
+        viewModelScope.launch {
+            downloadState.value = DownloadState(DownloadState.Phase.DOWNLOADING)
+            val result = UpdateDownloader.download(
+                context = getApplication(),
+                url = info.downloadUrl,
+                version = info.latestVersion,
+            ) { p -> downloadState.value = downloadState.value.copy(progress = p) }
+            downloadState.value = result.fold(
+                onSuccess = { apk ->
+                    DownloadState(DownloadState.Phase.READY, apkFile = apk)
+                },
+                onFailure = { e ->
+                    DownloadState(DownloadState.Phase.FAILED, error = e.message ?: "Download failed")
+                },
+            )
+        }
+    }
+
+    /** Reusable install intent for a downloaded APK. */
+    fun installIntentFor(apk: java.io.File) =
+        UpdateDownloader.installIntent(getApplication(), apk)
 
     /** Erases all user content. The app starts empty — no demo data is restored. */
     fun resetData() = viewModelScope.launch {
@@ -185,6 +225,7 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel()) {
     var featureText by remember { mutableStateOf("") }
     var launchMail by remember { mutableStateOf(false) }
     var openReleasePage by remember { mutableStateOf(false) }
+    var installApk by remember { mutableStateOf<java.io.File?>(null) }
 
     Column(
         modifier = Modifier
@@ -339,6 +380,7 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel()) {
         KineticSectionHeader(title = "UPDATES")
         val updateState by vm.updateState.collectAsStateWithLifecycle()
         val updateChecking by vm.updateChecking.collectAsStateWithLifecycle()
+        val download by vm.downloadState.collectAsStateWithLifecycle()
         Text(
             text = "Acadora v" + vm.appVersion + " — checks GitHub Releases for a newer build.",
             style = KineticType.label.copy(fontSize = 12.sp),
@@ -361,7 +403,58 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel()) {
                     )
                 }
                 Spacer(Modifier.height(KineticSpacing.sm))
-                KineticButton(text = "OPEN DOWNLOAD PAGE", onClick = { openReleasePage = true })
+                when (download.phase) {
+                    com.bits.facultyai.ui.more.SettingsViewModel.DownloadState.Phase.DOWNLOADING -> {
+                        LinearProgressIndicator(
+                            progress = { download.progress },
+                            modifier = Modifier.fillMaxWidth(),
+                            color = k.accent,
+                            trackColor = k.glassRegular,
+                        )
+                        Spacer(Modifier.height(KineticSpacing.xs))
+                        Text(
+                            text = "DOWNLOADING… " + (download.progress * 100).toInt() + "%",
+                            style = KineticType.label.copy(fontSize = 12.sp),
+                            color = k.mutedForeground,
+                        )
+                    }
+                    com.bits.facultyai.ui.more.SettingsViewModel.DownloadState.Phase.READY -> {
+                        KineticButton(
+                            text = "INSTALL NOW",
+                            onClick = { installApk = download.apkFile },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Text(
+                            text = "Downloaded. Android will ask to confirm the install — your data stays untouched.",
+                            style = KineticType.label.copy(fontSize = 12.sp),
+                            color = k.mutedForeground,
+                        )
+                    }
+                    com.bits.facultyai.ui.more.SettingsViewModel.DownloadState.Phase.FAILED -> {
+                        KineticButton(
+                            text = "RETRY DOWNLOAD",
+                            onClick = { vm.downloadUpdate(u.info) },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Text(
+                            text = download.error ?: "Download failed",
+                            style = KineticType.label.copy(fontSize = 12.sp),
+                            color = k.statusError,
+                        )
+                    }
+                    else -> {
+                        KineticButton(
+                            text = "DOWNLOAD & INSTALL",
+                            onClick = { vm.downloadUpdate(u.info) },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+                Spacer(Modifier.height(KineticSpacing.xs))
+                KineticGhostButton(
+                    text = "OPEN RELEASE PAGE",
+                    onClick = { openReleasePage = true },
+                )
             }
             UpdateChecker.Result.UpToDate -> Text(
                 text = "You're on the latest version.",
@@ -392,6 +485,7 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel()) {
             onValueChange = { featureText = it },
             hint = "Describe the feature you'd like to see…",
             minLines = 3,
+            maxLines = 6,
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(KineticSpacing.sm))
@@ -466,6 +560,16 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel()) {
             }
             launchMail = false
             featureText = ""
+        }
+    }
+    LaunchedEffect(installApk) {
+        installApk?.let { apk ->
+            runCatching { context.startActivity(vm.installIntentFor(apk)) }
+                .onFailure {
+                    // No installer handler (rare) — fall back to the release page.
+                    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(UpdateChecker.RELEASES_PAGE))) }
+                }
+            installApk = null
         }
     }
 }
