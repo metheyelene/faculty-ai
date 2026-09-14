@@ -37,6 +37,11 @@ the one-time console steps and how the config reaches builds.
    no document is world-readable, and a tampered client cannot read another
    user's data.
 
+> **STATUS (Sep 2026): steps 4 and 5 are DONE for project `acadora-b3203`.**
+> Email/Password + Google are enabled, the Firestore database exists
+> (us-central1, free tier), and the committed rules are deployed. A fresh
+> clone only needs steps 1–3 (new Firebase project + config file).
+
 ## How sync works
 
 - **Room stays the source of truth.** The cloud mirrors three aggregates:
