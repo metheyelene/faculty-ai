@@ -515,4 +515,49 @@ interface FacultyDao {
 
     @Query("DELETE FROM event_collection")
     suspend fun clearEventCollections()
+
+    // ---- Demo data management (Settings → Demo data). Every query is
+    // marker/section-scoped so a wipe can never touch real user rows. ----
+
+    @Query("SELECT COUNT(*) FROM class_slot WHERE subject LIKE '%[DEMO]%'")
+    suspend fun countDemoSlots(): Int
+
+    @Query("SELECT id FROM class_slot WHERE subject LIKE '%[DEMO]%'")
+    suspend fun demoSlotIds(): List<Long>
+
+    @Query("DELETE FROM class_slot WHERE id IN (:ids)")
+    suspend fun deleteSlotsByIds(ids: List<Long>)
+
+    @Query("DELETE FROM attendance_record WHERE classSlotId IN (:slotIds)")
+    suspend fun deleteRecordsForSlots(slotIds: List<Long>)
+
+    @Query("DELETE FROM attendance_entry WHERE recordId IN (SELECT id FROM attendance_record WHERE classSlotId IN (:slotIds))")
+    suspend fun deleteEntriesForSlots(slotIds: List<Long>)
+
+    @Query("DELETE FROM student WHERE name LIKE '%[DEMO]%'")
+    suspend fun deleteDemoStudents()
+
+    @Query("SELECT COUNT(*) FROM student WHERE name LIKE '%[DEMO]%'")
+    suspend fun countDemoStudents(): Int
+
+    @Query("DELETE FROM note WHERE title LIKE '%[DEMO]%'")
+    suspend fun deleteDemoNotes()
+
+    @Query("DELETE FROM task WHERE title LIKE '%[DEMO]%'")
+    suspend fun deleteDemoTasks()
+
+    @Query("SELECT id FROM event WHERE name LIKE '%[DEMO]%'")
+    suspend fun demoEventIds(): List<Long>
+
+    @Query("DELETE FROM event WHERE id IN (:ids)")
+    suspend fun deleteEventsByIds(ids: List<Long>)
+
+    @Query("DELETE FROM event_expense WHERE eventId IN (:ids)")
+    suspend fun deleteExpensesForEvents(ids: List<Long>)
+
+    @Query("DELETE FROM event_collection WHERE eventId IN (:ids)")
+    suspend fun deleteCollectionsForEvents(ids: List<Long>)
+
+    @Query("DELETE FROM event_photo WHERE eventId IN (:ids)")
+    suspend fun deletePhotosForEvents(ids: List<Long>)
 }

@@ -1,6 +1,8 @@
 package com.bits.facultyai.ui.more
 
 import android.app.Application
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
@@ -23,13 +26,16 @@ import androidx.lifecycle.viewModelScope
 import com.bits.facultyai.data.local.FacultyDatabase
 import com.bits.facultyai.data.prefs.AppSettings
 import com.bits.facultyai.data.prefs.SettingsRepository
+import com.bits.facultyai.ui.components.GlassTextField
 import com.bits.facultyai.ui.components.GlassTopBar
 import com.bits.facultyai.ui.components.KineticButton
 import com.bits.facultyai.ui.components.KineticDisplayText
 import com.bits.facultyai.data.auth.AuthRepository
 import com.bits.facultyai.data.auth.FirebaseAuthSource
+import com.bits.facultyai.data.demo.DemoData
 import com.bits.facultyai.data.sync.SyncEngine
 import com.bits.facultyai.data.sync.SyncStatus
+import com.bits.facultyai.data.update.UpdateChecker
 import com.bits.facultyai.ui.components.KineticGhostButton
 import com.bits.facultyai.ui.components.KineticOutlinedButton
 import com.bits.facultyai.ui.components.KineticSectionHeader
@@ -38,6 +44,7 @@ import com.bits.facultyai.ui.theme.KineticSpacing
 import com.bits.facultyai.ui.theme.KineticType
 import com.bits.facultyai.ui.theme.LocalKineticColors
 import com.bits.facultyai.ui.theme.ThemeMode
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -67,6 +74,70 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setGreetingStyle(style: Int) = viewModelScope.launch { settingsRepo.setGreetingStyle(style) }
 
     fun syncNow() = viewModelScope.launch { syncEngine.syncNow() }
+
+    // ---- Demo mode (presentations): load/wipe the [DEMO] dataset ----
+
+    /** null = still checking; true = demo rows present. */
+    val demoLoaded = MutableStateFlow<Boolean?>(null)
+    val demoBusy = MutableStateFlow(false)
+    val demoMessage = MutableStateFlow<String?>(null)
+
+    init {
+        refreshDemoState()
+    }
+
+    fun refreshDemoState() {
+        viewModelScope.launch {
+            demoLoaded.value =
+                db.facultyDao().countDemoSlots() > 0 || db.facultyDao().countDemoStudents() > 0
+        }
+    }
+
+    fun loadDemoData() {
+        if (demoBusy.value) return
+        viewModelScope.launch {
+            demoBusy.value = true
+            demoMessage.value = null
+            when (val r = DemoData.load(getApplication())) {
+                DemoData.Result.AlreadyLoaded -> demoMessage.value = "Demo data is already loaded."
+                DemoData.Result.Loaded -> {
+                    demoMessage.value = "Demo data loaded — every screen now has content."
+                    syncEngine.syncNow() // signed in: propagate the demo set like any data
+                }
+                is DemoData.Result.Failed -> demoMessage.value = r.message
+            }
+            demoBusy.value = false
+            refreshDemoState()
+        }
+    }
+
+    fun wipeDemoData() {
+        if (demoBusy.value) return
+        viewModelScope.launch {
+            demoBusy.value = true
+            demoMessage.value = null
+            DemoData.wipe(getApplication())
+            demoMessage.value = "Demo data removed."
+            demoBusy.value = false
+            refreshDemoState()
+        }
+    }
+
+    // ---- Updates (GitHub Releases) ----
+
+    val updateState = MutableStateFlow<UpdateChecker.Result?>(null)
+    val updateChecking = MutableStateFlow(false)
+
+    val appVersion: String = UpdateChecker.installedVersion(application)
+
+    fun checkForUpdates() {
+        if (updateChecking.value) return
+        viewModelScope.launch {
+            updateChecking.value = true
+            updateState.value = UpdateChecker.check(getApplication())
+            updateChecking.value = false
+        }
+    }
 
     /** Erases all user content. The app starts empty — no demo data is restored. */
     fun resetData() = viewModelScope.launch {
@@ -108,6 +179,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel()) {
     val k = LocalKineticColors.current
     val settings by vm.settings.collectAsStateWithLifecycle()
+
+    // Feature-request / update-launch state — function scope so the
+    // LaunchedEffect handlers below can read and reset them.
+    var featureText by remember { mutableStateOf("") }
+    var launchMail by remember { mutableStateOf(false) }
+    var openReleasePage by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -216,8 +293,180 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel()) {
             color = k.mutedForeground,
         )
 
+        // ---- DEMO DATA (presentations) ----
+        KineticSectionHeader(title = "DEMO DATA")
+        val demoLoaded by vm.demoLoaded.collectAsStateWithLifecycle()
+        val demoBusy by vm.demoBusy.collectAsStateWithLifecycle()
+        val demoMessage by vm.demoMessage.collectAsStateWithLifecycle()
+        val demoTitle = "Load demo data for presentations"
+        Text(
+            text = demoTitle,
+            style = KineticType.labelBold,
+            color = k.foreground,
+        )
+        Spacer(Modifier.height(KineticSpacing.xs))
+        Text(
+            text = "Fills the timetable, two ECE sections, attendance history, notes, tasks " +
+                "and an event with finances with clearly marked [DEMO] sample content so every " +
+                "screen can be demonstrated. One tap removes it again — real data is never touched.",
+            style = KineticType.label.copy(fontSize = 12.sp),
+            color = k.mutedForeground,
+        )
+        Spacer(Modifier.height(KineticSpacing.sm))
+        Row(horizontalArrangement = Arrangement.spacedBy(KineticSpacing.sm)) {
+            KineticButton(
+                text = if (demoLoaded == true) "DEMO DATA LOADED" else "LOAD DEMO DATA",
+                onClick = { vm.loadDemoData() },
+                enabled = !demoBusy && demoLoaded != true,
+            )
+            KineticGhostButton(
+                text = "REMOVE",
+                onClick = { vm.wipeDemoData() },
+                enabled = demoLoaded == true && !demoBusy,
+                color = k.statusError,
+            )
+        }
+        demoMessage?.let { msg ->
+            Spacer(Modifier.height(KineticSpacing.xs))
+            Text(
+                text = msg,
+                style = KineticType.label.copy(fontSize = 12.sp),
+                color = k.statusSuccess,
+            )
+        }
+
+        // ---- UPDATES ----
+        KineticSectionHeader(title = "UPDATES")
+        val updateState by vm.updateState.collectAsStateWithLifecycle()
+        val updateChecking by vm.updateChecking.collectAsStateWithLifecycle()
+        Text(
+            text = "Acadora v" + vm.appVersion + " — checks GitHub Releases for a newer build.",
+            style = KineticType.label.copy(fontSize = 12.sp),
+            color = k.mutedForeground,
+        )
+        Spacer(Modifier.height(KineticSpacing.sm))
+        when (val u = updateState) {
+            is UpdateChecker.Result.UpdateAvailable -> {
+                Text(
+                    text = "UPDATE AVAILABLE — v" + u.info.latestVersion,
+                    style = KineticType.labelBold,
+                    color = k.accent,
+                )
+                if (u.info.releaseNotes.isNotBlank()) {
+                    Spacer(Modifier.height(KineticSpacing.xs))
+                    Text(
+                        text = u.info.releaseNotes.take(280),
+                        style = KineticType.label.copy(fontSize = 12.sp),
+                        color = k.mutedForeground,
+                    )
+                }
+                Spacer(Modifier.height(KineticSpacing.sm))
+                KineticButton(text = "OPEN DOWNLOAD PAGE", onClick = { openReleasePage = true })
+            }
+            UpdateChecker.Result.UpToDate -> Text(
+                text = "You're on the latest version.",
+                style = KineticType.label.copy(fontSize = 12.sp),
+                color = k.statusSuccess,
+            )
+            is UpdateChecker.Result.Error -> Text(
+                text = u.message,
+                style = KineticType.label.copy(fontSize = 12.sp),
+                color = k.statusError,
+            )
+            null -> {}
+        }
+        if (updateState !is UpdateChecker.Result.UpdateAvailable) {
+            Spacer(Modifier.height(KineticSpacing.sm))
+            KineticOutlinedButton(
+                text = if (updateChecking) "CHECKING…" else "CHECK FOR UPDATES",
+                onClick = { vm.checkForUpdates() },
+                enabled = !updateChecking,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        // ---- SEND FEEDBACK / FEATURE REQUEST ----
+        KineticSectionHeader(title = "SEND FEEDBACK")
+        GlassTextField(
+            value = featureText,
+            onValueChange = { featureText = it },
+            hint = "Describe the feature you'd like to see…",
+            minLines = 3,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(KineticSpacing.sm))
+        KineticButton(
+            text = "SEND TO THE TEAM",
+            onClick = { launchMail = true },
+            enabled = featureText.isNotBlank(),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            text = "Opens your mail app with the request addressed to the Acadora team.",
+            style = KineticType.label.copy(fontSize = 12.sp),
+            color = k.mutedForeground,
+        )
+
+        // ---- ABOUT / CREDITS ----
+        KineticSectionHeader(title = "ABOUT")
+        Text(
+            text = "ACADORA — Faculty AI",
+            style = KineticType.heading,
+            color = k.foreground,
+        )
+        Text(
+            text = "Version " + vm.appVersion + " · Built for faculty at BITS Vizag",
+            style = KineticType.label.copy(fontSize = 12.sp),
+            color = k.mutedForeground,
+        )
+        Spacer(Modifier.height(KineticSpacing.sm))
+        Text(text = "FOUNDER & CREATOR", style = KineticType.label.copy(fontSize = 11.sp), color = k.accent)
+        Text(
+            text = "Mithil Viswas",
+            style = KineticType.body,
+            color = k.foreground,
+        )
+        Spacer(Modifier.height(KineticSpacing.xs))
+        Text(text = "CO-FOUNDERS", style = KineticType.label.copy(fontSize = 11.sp), color = k.accent)
+        Text(
+            text = "Rushi Kiran Bhaskar  ·  Dilip Kumar",
+            style = KineticType.body,
+            color = k.foreground,
+        )
+        Spacer(Modifier.height(KineticSpacing.xs))
+        Text(
+            text = "Students of BITS Vizag — ECE, 4th Year, Section B",
+            style = KineticType.label.copy(fontSize = 12.sp),
+            color = k.mutedForeground,
+        )
+
         Spacer(Modifier.height(KineticSpacing.lg))
         Spacer(Modifier.height(KineticSpacing.xl))
+    }
+
+    // Side-effect launches (outside composition-triggering state reads).
+    val context = LocalContext.current
+    LaunchedEffect(openReleasePage) {
+        if (openReleasePage) {
+            runCatching {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(UpdateChecker.RELEASES_PAGE)))
+            }
+            openReleasePage = false
+        }
+    }
+    LaunchedEffect(launchMail) {
+        if (launchMail) {
+            runCatching {
+                context.startActivity(
+                    Intent.createChooser(
+                        com.bits.facultyai.data.feedback.FeatureRequestSender.intent(context, featureText),
+                        "Send feature request",
+                    ),
+                )
+            }
+            launchMail = false
+            featureText = ""
+        }
     }
 }
 

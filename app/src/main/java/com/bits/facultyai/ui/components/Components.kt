@@ -270,9 +270,10 @@ fun KineticGhostButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     color: Color? = null,
+    enabled: Boolean = true,
 ) {
     val k = LocalKineticColors.current
-    TextButton(onClick = onClick, modifier = modifier) {
+    TextButton(onClick = onClick, modifier = modifier, enabled = enabled) {
         Text(
             text = text.uppercase(),
             style = KineticType.labelBold,
