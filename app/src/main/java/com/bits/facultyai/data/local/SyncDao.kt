@@ -3,6 +3,7 @@ package com.bits.facultyai.data.local
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Upsert
 
 /**
  * Sync bookkeeping. Three concerns, all owned here and nowhere else:
@@ -55,8 +56,9 @@ interface SyncDao {
     @Query("SELECT COUNT(*) FROM sync_meta WHERE uid = :uid AND backfillDone = 1")
     suspend fun isBackfillDone(uid: String): Int
 
-    @Insert
-    suspend fun insertMeta(meta: SyncMetaEntity)
+    /** The only write path for meta — watermarks advance, never re-insert. */
+    @Upsert
+    suspend fun upsertMeta(meta: SyncMetaEntity)
 
     @Query("DELETE FROM sync_meta WHERE uid = :uid")
     suspend fun deleteMeta(uid: String)

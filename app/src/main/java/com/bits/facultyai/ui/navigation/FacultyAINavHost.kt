@@ -47,6 +47,7 @@ import com.bits.facultyai.ui.theme.KineticType
 import com.bits.facultyai.ui.theme.LocalKineticColors
 import com.bits.facultyai.ui.theme.rememberReducedMotion
 import dev.chrisbanes.haze.HazeState
+import com.bits.facultyai.ui.components.SyncPullToRefresh
 import com.bits.facultyai.ui.home.HomeScreen
 import com.bits.facultyai.ui.timetable.TimetableScreen
 import com.bits.facultyai.ui.timetable.TimetableViewModel
@@ -229,15 +230,19 @@ fun FacultyAINavHost(
             composable(Routes.ONBOARDING) {
                 OnboardingScreen(onComplete = onOnboardingComplete)
             }
-            composable(Routes.HOME) { HomeScreen(onNavigate = { route -> navController.navigate(route) }) }
+            composable(Routes.HOME) {
+                SyncPullToRefresh { HomeScreen(onNavigate = { route -> navController.navigate(route) }) }
+            }
             composable(Routes.TIMETABLE) {
                 val vm: TimetableViewModel = viewModel()
                 LaunchedEffect(Unit) {
                     vm.attendanceEvent.collect { slotId -> navController.navigate(attendanceRoute(slotId)) }
                 }
-                TimetableScreen(vm = vm)
+                SyncPullToRefresh { TimetableScreen(vm = vm) }
             }
-            composable(Routes.ATTENDANCE) { AttendanceScreen(onNavigate = { navController.navigate(it) }) }
+            composable(Routes.ATTENDANCE) {
+                SyncPullToRefresh { AttendanceScreen(onNavigate = { navController.navigate(it) }) }
+            }
             composable(Routes.ATTENDANCE_CLASS) { entry ->
                 val slotId = entry.arguments?.getString("slotId")?.toLongOrNull() ?: 0L
                 AttendanceClassScreen(slotId = slotId, onDone = { navController.popBackStack() })
@@ -282,9 +287,11 @@ fun FacultyAINavHost(
             composable(Routes.CALENDAR) {
                 CalendarScreen(onBack = { navController.popBackStack() })
             }
-            composable(Routes.ASSISTANT) { AssistantScreen() }
+            composable(Routes.ASSISTANT) { SyncPullToRefresh { AssistantScreen() } }
             composable(Routes.MEMORY) { MemoryScreen(onBack = { navController.popBackStack() }) }
-            composable(Routes.MORE) { MoreScreen(onNavigate = { navController.navigate(it) }) }
+            composable(Routes.MORE) {
+                SyncPullToRefresh { MoreScreen(onNavigate = { navController.navigate(it) }) }
+            }
             composable(Routes.PROFILE) { ProfileScreen(onBack = { navController.popBackStack() }) }
             composable(Routes.SETTINGS) {
                 SettingsScreen(onBack = { navController.popBackStack() })

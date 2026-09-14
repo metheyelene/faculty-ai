@@ -206,6 +206,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
      * next Google sign-in shows the full chooser) plus all account-owned
      * local data, so a different account never sees the previous one's data.
      */
+    /** Guest → login screen. Local data stays until an account claims the device. */
+    fun enterSignIn() = viewModelScope.launch { settingsRepo.setGuestMode(false) }
+
     fun signOut() = viewModelScope.launch {
         syncEngine.signOut()
         AuthRepository(getApplication(), FirebaseAuthSource()).signOut()
@@ -319,20 +322,37 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel()) {
         }
 
         KineticSectionHeader(title = "ACCOUNT")
-        KineticOutlinedButton(
-            text = "SIGN OUT",
-            onClick = {
-                vm.signOut()
-                onBack()
-            },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Text(
-            text = "Signing out clears this account's data on this device so the " +
-                "next sign-in starts fresh. Your onboarding and theme choices stay.",
-            style = KineticType.label.copy(fontSize = 12.sp),
-            color = k.mutedForeground,
-        )
+        if (signedIn) {
+            KineticOutlinedButton(
+                text = "SIGN OUT",
+                onClick = {
+                    vm.signOut()
+                    onBack()
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                text = "Signing out clears this account's data on this device so the " +
+                    "next sign-in starts fresh. Your onboarding and theme choices stay.",
+                style = KineticType.label.copy(fontSize = 12.sp),
+                color = k.mutedForeground,
+            )
+        } else {
+            KineticOutlinedButton(
+                text = "SIGN IN / CREATE ACCOUNT",
+                onClick = {
+                    vm.enterSignIn()
+                    onBack()
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                text = "You're using Acadora as a guest on this device only. " +
+                    "Sign in to back up and sync your data across devices.",
+                style = KineticType.label.copy(fontSize = 12.sp),
+                color = k.mutedForeground,
+            )
+        }
 
         // ---- DEMO DATA (presentations) ----
         KineticSectionHeader(title = "DEMO DATA")

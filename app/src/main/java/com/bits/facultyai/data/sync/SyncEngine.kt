@@ -162,7 +162,7 @@ class SyncEngine private constructor(context: Context) {
         dao.stampLegacyStudents(now)
         dao.stampLegacyRecords(now)
         dao.stampLegacyEntries(now)
-        syncDao.insertMeta(SyncMetaEntity(uid = uid, backfillDone = true))
+        syncDao.upsertMeta(SyncMetaEntity(uid = uid, backfillDone = true))
     }
 
     /** Room invalidation → hot flow; any write anywhere triggers a debounced sync. */
@@ -190,10 +190,10 @@ class SyncEngine private constructor(context: Context) {
             _status.value = SyncStatus.Syncing
             try {
                 val meta = syncDao.getMeta(activeUid)
-                    ?: SyncMetaEntity(uid = activeUid).also { syncDao.insertMeta(it) }
+                    ?: SyncMetaEntity(uid = activeUid).also { syncDao.upsertMeta(it) }
                 drainDeletions(activeUid)
                 val pushed = push(activeUid, meta)
-                syncDao.insertMeta(pushed)
+                syncDao.upsertMeta(pushed)
                 pull(activeUid, pushed)
                 touchAccountDoc(activeUid)
                 _status.value = SyncStatus.Synced(System.currentTimeMillis())
@@ -482,7 +482,7 @@ class SyncEngine private constructor(context: Context) {
             }
         }
         docs.mapNotNull { it.getLong("deletedAt") }.maxOrNull()?.let { max ->
-            if (max > meta.wmTombstone) syncDao.insertMeta(meta.copy(wmTombstone = max))
+            if (max > meta.wmTombstone) syncDao.upsertMeta(meta.copy(wmTombstone = max))
         }
     }
 
